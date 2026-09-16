@@ -1,88 +1,95 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../screens/budgets/budgets_screen.dart';
-import '../../screens/finance/finance_screen.dart';
-import '../../screens/products/products_services_screen.dart';
 import '../../screens/appointments/appointments_screen.dart';
-import '../../screens/settings/business_screen.dart';
+import '../../screens/products/products_services_screen.dart';
 
 class StorageService {
-  static const String _keyBudgets = 'saved_budgets';
-  static const String _keyFinance = 'saved_finance';
-  static const String _keyProducts = 'saved_products';
-  static const String _keyAppointments = 'saved_appointments';
-  static const String _keyBusiness = 'saved_business';
+  static const String _keyBudgets = 'orcafacil_budgets_list';
+  static const String _keyAppointments = 'orcafacil_appointments_list';
+  static const String _keyProducts = 'produtos_cadastrados';
+  static const String _keyCompany = 'orcafacil_company_data';
 
-  // Salvar tudo
-  static Future<void> salvarTudo() async {
-    final prefs = await SharedPreferences.getInstance();
+  // Cache global unificado de produtos
+  static List<Map<String, dynamic>> produtosCacheGlobal = [];
 
-    await prefs.setString(_keyBudgets, jsonEncode(BudgetsScreen.listaOrcamentosGlobais));
-    await prefs.setString(_keyFinance, jsonEncode(FinanceScreen.listaFinanceiraGlobal));
-    
-    final prodList = ProductsServicesScreen.itensGlobais.map((p) => {'name': p.name, 'price': p.price, 'type': p.type}).toList();
-    await prefs.setString(_keyProducts, jsonEncode(prodList));
-
-    await prefs.setString(_keyAppointments, jsonEncode(AppointmentsScreen.agendaGlobal));
-
-    final businessData = {
-      'nome': BusinessScreen.empresaNome,
-      'cnpj': BusinessScreen.empresaCnpj,
-      'whatsapp': BusinessScreen.empresaWhatsapp,
-      'assinaturaTexto': BusinessScreen.empresaAssinaturaTexto,
-      'logo': BusinessScreen.empresaLogo,
-    };
-    await prefs.setString(_keyBusiness, jsonEncode(businessData));
-  }
-
-  // Carregar tudo ao abrir o app
+  // Carrega todos os dados do SharedPreferences para as listas globais
   static Future<void> carregarTudo() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Orçamentos
-    final budgetsStr = prefs.getString(_keyBudgets);
+    // 1. Carregar Orçamentos
+    final String? budgetsStr = prefs.getString(_keyBudgets);
     if (budgetsStr != null) {
-      BudgetsScreen.listaOrcamentosGlobais.clear();
-      BudgetsScreen.listaOrcamentosGlobais.addAll(List<Map<String, dynamic>>.from(jsonDecode(budgetsStr)));
-    }
-
-    // Financeiro
-    final financeStr = prefs.getString(_keyFinance);
-    if (financeStr != null) {
-      FinanceScreen.listaFinanceiraGlobal.clear();
-      FinanceScreen.listaFinanceiraGlobal.addAll(List<Map<String, dynamic>>.from(jsonDecode(financeStr)));
-    }
-
-    // Produtos e Serviços
-    final productsStr = prefs.getString(_keyProducts);
-    if (productsStr != null) {
-      ProductsServicesScreen.itensGlobais.clear();
-      final decoded = List<Map<String, dynamic>>.from(jsonDecode(productsStr));
-      for (var item in decoded) {
-        ProductsServicesScreen.itensGlobais.add(ProductServiceItem(
-          name: item['name'],
-          price: item['price'],
-          type: item['type'],
-        ));
+      try {
+        final List decoded = jsonDecode(budgetsStr);
+        BudgetsScreen.listaOrcamentosGlobais = decoded
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      } catch (_) {
+        BudgetsScreen.listaOrcamentosGlobais = [];
       }
     }
 
-    // Agenda
-    final appointmentsStr = prefs.getString(_keyAppointments);
+    // 2. Carregar Agendamentos (Agenda)
+    final String? appointmentsStr = prefs.getString(_keyAppointments);
     if (appointmentsStr != null) {
-      AppointmentsScreen.agendaGlobal.clear();
-      AppointmentsScreen.agendaGlobal.addAll(List<Map<String, String>>.from(jsonDecode(appointmentsStr).map((item) => Map<String, String>.from(item))));
+      try {
+        final List decoded = jsonDecode(appointmentsStr);
+        AppointmentsScreen.agendaGlobal = decoded
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      } catch (_) {
+        AppointmentsScreen.agendaGlobal = [];
+      }
     }
 
-    // Empresa
-    final businessStr = prefs.getString(_keyBusiness);
-    if (businessStr != null) {
-      final biz = jsonDecode(businessStr);
-      BusinessScreen.empresaNome = biz['nome'] ?? '';
-      BusinessScreen.empresaCnpj = biz['cnpj'] ?? '';
-      BusinessScreen.empresaWhatsapp = biz['whatsapp'] ?? '';
-      BusinessScreen.empresaAssinaturaTexto = biz['assinaturaTexto'] ?? '';
-      BusinessScreen.empresaLogo = biz['logo'] ?? '';
+    // 3. Carregar Produtos e Serviços de forma unificada
+    final String? productsStr = prefs.getString(_keyProducts);
+    if (productsStr != null) {
+      try {
+        final List decoded = jsonDecode(productsStr);
+        produtosCacheGlobal = decoded
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        ProductsServicesScreen.listaProdutosGlobais = produtosCacheGlobal;
+      } catch (_) {
+        produtosCacheGlobal = [];
+        ProductsServicesScreen.listaProdutosGlobais = [];
+      }
+    } else {
+      produtosCacheGlobal = [];
+      ProductsServicesScreen.listaProdutosGlobais = [];
     }
+  }
+
+  // Salvar Orçamentos
+  static Future<void> salvarBudgets() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyBudgets, jsonEncode(BudgetsScreen.listaOrcamentosGlobais));
+  }
+
+  // Salvar Agendamentos
+  static Future<void> salvarAppointments() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyAppointments, jsonEncode(AppointmentsScreen.agendaGlobal));
+  }
+
+  // Salvar Produtos e Serviços
+  static Future<void> salvarProducts() async {
+    final prefs = await SharedPreferences.getInstance();
+    produtosCacheGlobal = List<Map<String, dynamic>>.from(ProductsServicesScreen.listaProdutosGlobais);
+    await prefs.setString(_keyProducts, jsonEncode(produtosCacheGlobal));
+  }
+
+  static Future<void> salvarFinance() async {}
+
+  // Limpar dados do app
+  static Future<void> limparTudo() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    BudgetsScreen.listaOrcamentosGlobais.clear();
+    AppointmentsScreen.agendaGlobal.clear();
+    ProductsServicesScreen.listaProdutosGlobais.clear();
+    produtosCacheGlobal.clear();
   }
 }

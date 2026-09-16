@@ -1,135 +1,317 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../core/services/storage_service.dart';
+import '../../core/services/pdf_service.dart';
 import '../../core/theme/app_colors.dart';
-import '../../screens/settings/business_screen.dart';
-import '../../screens/finance/finance_screen.dart';
-import '../../screens/products/products_services_screen.dart';
+import '../products/products_services_screen.dart';
+import 'pdf_preview_screen.dart';
 
 class BudgetsScreen extends StatefulWidget {
   const BudgetsScreen({super.key});
 
-  static final List<Map<String, dynamic>> listaOrcamentosGlobais = [];
+  static List<Map<String, dynamic>> listaOrcamentosGlobais = [];
 
   @override
   State<BudgetsScreen> createState() => _BudgetsScreenState();
 }
 
 class _BudgetsScreenState extends State<BudgetsScreen> {
-  void _abrirModalOrcamento([Map<String, dynamic>? itemExistente, int? index]) {
-    final clienteController = TextEditingController(text: itemExistente?['cliente'] ?? '');
-    String itemSelecionado = itemExistente?['item'] ?? (ProductsServicesScreen.itensGlobais.isNotEmpty ? ProductsServicesScreen.itensGlobais.first.name : 'Serviço Geral');
-    final valorController = TextEditingController(text: itemExistente != null ? itemExistente['valor'].toString() : '0.00');
-    String statusAtual = itemExistente?['status'] ?? 'Pendente';
+  @override
+  void initState() {
+    super.initState();
+    _carregarDados();
+  }
 
-    // Atualiza o valor automático se escolher da lista de produtos/serviços
-    if (itemExistente == null && ProductsServicesScreen.itensGlobais.isNotEmpty) {
-      valorController.text = ProductsServicesScreen.itensGlobais.first.price.toString();
+  Future<void> _carregarDados() async {
+    await StorageService.carregarTudo();
+    if (mounted) setState(() {});
+  }
+
+  void _adicionarOuEditarOrcamento({Map<String, dynamic>? orcamentoExistente, int? index}) async {
+    // Garante sincronização imediata dos produtos cadastrados ao abrir o modal
+    await StorageService.carregarTudo();
+
+    final clienteController = TextEditingController(text: orcamentoExistente?['cliente'] ?? '');
+    
+    List<Map<String, dynamic>> itensOrcamento = [];
+    if (orcamentoExistente != null && orcamentoExistente['itens'] != null) {
+      itensOrcamento = List<Map<String, dynamic>>.from(
+        (orcamentoExistente['itens'] as List).map((e) => Map<String, dynamic>.from(e)),
+      );
+    } else if (orcamentoExistente != null && orcamentoExistente['item'] != null) {
+      itensOrcamento.add({
+        'descricao': orcamentoExistente['item'],
+        'quantidade': 1,
+        'valorUnitario': orcamentoExistente['valor'] ?? 0.0,
+      });
+    } else {
+      itensOrcamento.add({'descricao': '', 'quantidade': 1, 'valorUnitario': 0.0});
     }
 
-    showModalBottomSheet(
+    final entradaController = TextEditingController(text: orcamentoExistente != null ? orcamentoExistente['entrada'].toString() : '0.0');
+    String statusSelecionado = orcamentoExistente?['status'] ?? 'Pendente';
+    String formaPagamentoSelecionada = orcamentoExistente?['formaPagamento'] ?? 'Pix';
+
+    if (!mounted) return;
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 28,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(itemExistente == null ? 'Novo Orçamento' : 'Editar Orçamento', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textLight)),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: clienteController,
-                    style: const TextStyle(color: AppColors.textLight),
-                    decoration: const InputDecoration(labelText: 'Nome do Cliente', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 12),
-                  if (ProductsServicesScreen.itensGlobais.isNotEmpty) ...[
-                    DropdownButtonFormField<String>(
-                      dropdownColor: AppColors.surfaceDark,
-                      style: const TextStyle(color: AppColors.textLight),
-                      value: itemSelecionado,
-                      decoration: const InputDecoration(labelText: 'Produto / Serviço Cadastrado', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-                      items: ProductsServicesScreen.itensGlobais.map((prod) {
-                        return DropdownMenuItem(
-                          value: prod.name,
-                          child: Text('${prod.name} (R\$ ${prod.price.toStringAsFixed(2)})', style: const TextStyle(color: AppColors.textLight)),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        setModalState(() {
-                          itemSelecionado = val!;
-                          final match = ProductsServicesScreen.itensGlobais.firstWhere((p) => p.name == val);
-                          valorController.text = match.price.toString();
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  TextField(
-                    controller: valorController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: AppColors.textLight),
-                    decoration: const InputDecoration(labelText: 'Valor Total (R\$)', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    dropdownColor: AppColors.surfaceDark,
-                    style: const TextStyle(color: AppColors.textLight),
-                    value: statusAtual,
-                    decoration: const InputDecoration(labelText: 'Status do Orçamento', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-                    items: const [
-                      DropdownMenuItem(value: 'Pendente', child: Text('Pendente', style: TextStyle(color: AppColors.warningOrange))),
-                      DropdownMenuItem(value: 'Aprovado', child: Text('Aprovado', style: TextStyle(color: AppColors.successGreen))),
-                    ],
-                    onChanged: (val) => setModalState(() => statusAtual = val!),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50)),
-                    onPressed: () {
-                      final valorDouble = double.tryParse(valorController.text.replaceAll(',', '.')) ?? 0.0;
-                      if (clienteController.text.isNotEmpty && valorDouble > 0) {
-                        setState(() {
-                          final novoOrcamento = {
-                            'cliente': clienteController.text,
-                            'item': itemSelecionado,
-                            'valor': valorDouble,
-                            'status': statusAtual,
-                          };
+          builder: (context, setDialogState) {
+            double calcularTotal() {
+              double total = 0;
+              for (var item in itensOrcamento) {
+                double qtd = (item['quantidade'] as num?)?.toDouble() ?? 1.0;
+                double val = (item['valorUnitario'] as num?)?.toDouble() ?? 0.0;
+                total += qtd * val;
+              }
+              return total;
+            }
 
-                          if (itemExistente == null) {
-                            BudgetsScreen.listaOrcamentosGlobais.add(novoOrcamento);
-                            // Envio automático para o financeiro se estiver aprovado
-                            if (statusAtual == 'Aprovado') {
-                              FinanceScreen.listaFinanceiraGlobal.add({
-                                'cliente': clienteController.text,
-                                'descricao': itemSelecionado,
-                                'valor': valorDouble,
-                                'tipo': 'Receita',
-                                'status': 'Pendente',
-                              });
-                            }
-                          } else {
-                            BudgetsScreen.listaOrcamentosGlobais[index!] = novoOrcamento;
-                          }
-                        });
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: const Text('Salvar Orçamento'),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+            // Lista unificada e sem duplicatas puxando de ambas as fontes de cache
+            final List<Map<String, dynamic>> listaProdutos = [
+              ...StorageService.produtosCacheGlobal,
+              ...ProductsServicesScreen.listaProdutosGlobais,
+            ].fold<Map<String, Map<String, dynamic>>>({}, (map, item) {
+              final nome = item['name'] ?? item['nome'] ?? '';
+              if (nome.isNotEmpty) map[nome] = item;
+              return map;
+            }).values.toList();
+
+            return AlertDialog(
+              backgroundColor: AppColors.surfaceDark,
+              title: Text(
+                orcamentoExistente == null ? 'Novo Orçamento' : 'Editar Orçamento',
+                style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold),
               ),
+              content: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: clienteController,
+                        style: const TextStyle(color: AppColors.textLight),
+                        decoration: const InputDecoration(labelText: 'Nome do Cliente', labelStyle: TextStyle(color: AppColors.textSub)),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('Itens / Produtos / Serviços', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 8),
+
+                      ...itensOrcamento.asMap().entries.map((entry) {
+                        int idx = entry.key;
+                        var item = entry.value;
+
+                        final precoController = TextEditingController(text: item['valorUnitario'].toString());
+                        final descController = TextEditingController(text: item['descricao']);
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.backgroundDark,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.borderDark),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text('Item ${idx + 1}', style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 12)),
+                                  ),
+                                  if (itensOrcamento.length > 1)
+                                    IconButton(
+                                      icon: const Icon(Icons.close, color: AppColors.errorRed, size: 18),
+                                      onPressed: () {
+                                        setDialogState(() {
+                                          itensOrcamento.removeAt(idx);
+                                        });
+                                      },
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              DropdownButtonFormField<String>(
+                                value: listaProdutos.any((p) => (p['name'] ?? p['nome'] ?? '') == item['descricao']) ? item['descricao'] : null,
+                                dropdownColor: AppColors.surfaceDark,
+                                style: const TextStyle(color: AppColors.textLight),
+                                decoration: const InputDecoration(
+                                  labelText: 'Puxar Produto/Serviço Cadastrado (Opcional)',
+                                  labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12),
+                                ),
+                                items: [
+                                  const DropdownMenuItem<String>(
+                                    value: null,
+                                    child: Text('Digitação Extra / Manual', style: TextStyle(color: AppColors.textSub)),
+                                  ),
+                                  ...listaProdutos.map((prod) {
+                                    final nomeProd = prod['name'] ?? prod['nome'] ?? '';
+                                    final precoProd = (prod['price'] ?? prod['preco'] ?? prod['valor'] ?? 0.0) as num;
+                                    return DropdownMenuItem<String>(
+                                      value: nomeProd.toString(),
+                                      child: Text("$nomeProd (R\$ ${precoProd.toStringAsFixed(2)})"),
+                                    );
+                                  }),
+                                ],
+                                onChanged: (selectedName) {
+                                  setDialogState(() {
+                                    if (selectedName != null) {
+                                      final prod = listaProdutos.firstWhere(
+                                        (p) => (p['name'] ?? p['nome'] ?? '') == selectedName,
+                                        orElse: () => {},
+                                      );
+                                      final nomeEncontrado = prod['name'] ?? prod['nome'] ?? '';
+                                      final precoEncontrado = (prod['price'] ?? prod['preco'] ?? prod['valor'] ?? 0.0) as double;
+                                      
+                                      item['descricao'] = nomeEncontrado;
+                                      item['valorUnitario'] = precoEncontrado;
+                                      descController.text = nomeEncontrado;
+                                      precoController.text = precoEncontrado.toString();
+                                    }
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: descController,
+                                onChanged: (val) => item['descricao'] = val,
+                                style: const TextStyle(color: AppColors.textLight),
+                                decoration: const InputDecoration(labelText: 'Descrição / Extra', labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12)),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 1,
+                                    child: TextField(
+                                      controller: TextEditingController(text: item['quantidade'].toString()),
+                                      onChanged: (val) => item['quantidade'] = int.tryParse(val) ?? 1,
+                                      keyboardType: TextInputType.number,
+                                      style: const TextStyle(color: AppColors.textLight),
+                                      decoration: const InputDecoration(labelText: 'Qtd', labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12)),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 2,
+                                    child: TextField(
+                                      controller: precoController,
+                                      onChanged: (val) => item['valorUnitario'] = double.tryParse(val.replaceAll(',', '.')) ?? 0.0,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      style: const TextStyle(color: AppColors.textLight),
+                                      decoration: const InputDecoration(labelText: 'Preço Unit. (R\$)', labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+
+                      TextButton.icon(
+                        onPressed: () {
+                          setDialogState(() {
+                            itensOrcamento.add({'descricao': '', 'quantidade': 1, 'valorUnitario': 0.0});
+                          });
+                        },
+                        icon: const Icon(Icons.add, color: AppColors.primaryBlue),
+                        label: const Text('Adicionar Item / Extra', style: TextStyle(color: AppColors.primaryBlue)),
+                      ),
+                      const Divider(color: AppColors.borderDark),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Valor Total Calculado: R\$ ${calcularTotal().toStringAsFixed(2)}',
+                        style: const TextStyle(color: AppColors.successGreen, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: entradaController,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(color: AppColors.textLight),
+                        decoration: const InputDecoration(labelText: 'Valor de Entrada / Sinal (R\$)', labelStyle: TextStyle(color: AppColors.textSub)),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: formaPagamentoSelecionada,
+                        dropdownColor: AppColors.surfaceDark,
+                        style: const TextStyle(color: AppColors.textLight),
+                        decoration: const InputDecoration(labelText: 'Forma de Pagamento', labelStyle: TextStyle(color: AppColors.textSub)),
+                        items: ['Pix', 'Cartão de Crédito', 'Dinheiro', 'Boleto', 'A combinar'].map((fp) {
+                          return DropdownMenuItem(value: fp, child: Text(fp));
+                        }).toList(),
+                        onChanged: (v) {
+                          if (v != null) setDialogState(() => formaPagamentoSelecionada = v);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        value: statusSelecionado,
+                        dropdownColor: AppColors.surfaceDark,
+                        style: const TextStyle(color: AppColors.textLight),
+                        decoration: const InputDecoration(labelText: 'Status', labelStyle: TextStyle(color: AppColors.textSub)),
+                        items: ['Pendente', 'Aprovado', 'Concluído', 'Cancelado'].map((status) {
+                          return DropdownMenuItem(value: status, child: Text(status));
+                        }).toList(),
+                        onChanged: (novoValor) {
+                          if (novoValor != null) {
+                            setDialogState(() => statusSelecionado = novoValor);
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar', style: TextStyle(color: AppColors.textSub)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
+                  onPressed: () async {
+                    final cliente = clienteController.text.trim();
+                    final valorTotal = calcularTotal();
+                    final entrada = double.tryParse(entradaController.text.replaceAll(',', '.')) ?? 0.0;
+
+                    if (cliente.isNotEmpty && itensOrcamento.isNotEmpty && valorTotal > 0) {
+                      final dataAtual = DateTime.now().toString().substring(0, 10);
+                      final novoRegistro = {
+                        'cliente': cliente,
+                        'item': itensOrcamentoResumo(itensOrcamento),
+                        'itens': itensOrcamento,
+                        'valor': valorTotal,
+                        'entrada': entrada,
+                        'formaPagamento': formaPagamentoSelecionada,
+                        'status': statusSelecionado,
+                        'data': orcamentoExistente?['data'] ?? dataAtual,
+                      };
+
+                      setState(() {
+                        if (index == null) {
+                          BudgetsScreen.listaOrcamentosGlobais.add(novoRegistro);
+                        } else {
+                          BudgetsScreen.listaOrcamentosGlobais[index] = novoRegistro;
+                        }
+                      });
+
+                      await StorageService.salvarBudgets();
+
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Orçamento salvo com sucesso!')),
+                      );
+                    }
+                  },
+                  child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+                ),
+              ],
             );
           },
         );
@@ -137,148 +319,148 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     );
   }
 
-  void _mostrarPreviaPdf(Map<String, dynamic> item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surfaceDark,
-        title: Row(
-          children: const [
-            Icon(Icons.picture_as_pdf, color: AppColors.primaryBlue),
-            SizedBox(width: 8),
-            Text('Orçamento Gerado (PDF)', style: TextStyle(color: AppColors.textLight)),
-          ],
-        ),
-        content: SizedBox(
-          width: 400,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(BusinessScreen.empresaNome.isEmpty ? 'SUA EMPRESA' : BusinessScreen.empresaNome.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
-              Text('CNPJ: ${BusinessScreen.empresaCnpj.isEmpty ? '00.000.000/0001-00' : BusinessScreen.empresaCnpj}', style: const TextStyle(fontSize: 11, color: AppColors.textSub)),
-              const Divider(color: AppColors.borderDark),
-              Text('Cliente: ${item['cliente']}', style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
-              Text('Serviço: ${item['item']}', style: const TextStyle(color: AppColors.textLight)),
-              const SizedBox(height: 10),
-              Text('Valor Total: R\$ ${(item['valor'] as double).toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successGreen)),
-              Text('Status: ${item['status']}', style: const TextStyle(color: AppColors.textSub)),
-              const SizedBox(height: 20),
-              const Divider(color: AppColors.borderDark),
-              Text('Responsável:\n${BusinessScreen.empresaAssinaturaTexto.isEmpty ? 'Técnico Responsável' : BusinessScreen.empresaAssinaturaTexto}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppColors.textSub)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Fechar', style: TextStyle(color: AppColors.textSub))),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, foregroundColor: Colors.white),
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Documento PDF exportado com sucesso no dispositivo!')));
-            },
-            icon: const Icon(Icons.download),
-            label: const Text('Salvar PDF'),
-          ),
-        ],
-      ),
-    );
+  String itensOrcamentoResumo(List<Map<String, dynamic>> itens) {
+    if (itens.isEmpty) return 'Orçamento Geral';
+    return itens.map((i) => "${i['quantidade']}x ${i['descricao']}").join(', ');
   }
 
-  void _enviarWhatsApp(Map<String, dynamic> item) async {
-    final mensagem = "Olá *${item['cliente']}*! Segue o resumo do seu orçamento:\n\n*Serviço:* ${item['item']}\n*Valor:* R\$ ${(item['valor'] as double).toStringAsFixed(2)}\n*Status:* ${item['status']}\n\nGerado por ${BusinessScreen.empresaNome.isEmpty ? 'OrçaFácil Pro' : BusinessScreen.empresaNome}.";
-    final telefone = BusinessScreen.empresaWhatsapp.replaceAll(RegExp(r'[^0-9]'), '');
-    
-    final url = Uri.parse("https://wa.me/$telefone?text=${Uri.encodeComponent(mensagem)}");
-    try {
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url, mode: LaunchMode.externalApplication);
-      } else {
-        await launchUrl(Uri.parse("https://api.whatsapp.com/send?text=${Uri.encodeComponent(mensagem)}"), mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao abrir WhatsApp: $e')));
+  void _deletarOrcamento(int index) async {
+    setState(() {
+      BudgetsScreen.listaOrcamentosGlobais.removeAt(index);
+    });
+    await StorageService.salvarBudgets();
+  }
+
+  Color _obterCorStatus(String status) {
+    switch (status) {
+      case 'Aprovado':
+        return AppColors.successGreen;
+      case 'Concluído':
+        return AppColors.primaryBlue;
+      case 'Cancelado':
+        return AppColors.errorRed;
+      default:
+        return AppColors.warningOrange;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Orçamentos')),
+      backgroundColor: AppColors.backgroundDark,
+      appBar: AppBar(
+        title: const Text('Orçamentos', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.surfaceDark,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textLight),
+            tooltip: 'Atualizar',
+            onPressed: () {
+              _carregarDados();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Lista atualizada!'), duration: Duration(seconds: 1)),
+              );
+            },
+          ),
+        ],
+      ),
       body: BudgetsScreen.listaOrcamentosGlobais.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.description_outlined, size: 48, color: AppColors.textSub),
-                  SizedBox(height: 12),
-                  Text('Nenhum orçamento cadastrado.', style: TextStyle(color: AppColors.textSub, fontSize: 14)),
-                  SizedBox(height: 4),
-                  Text('Toque no botão + para criar um orçamento.', style: TextStyle(color: AppColors.textMedium, fontSize: 12)),
-                ],
-              ),
+          ? const Center(
+              child: Text('Nenhum orçamento cadastrado.', style: TextStyle(color: AppColors.textSub)),
             )
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: BudgetsScreen.listaOrcamentosGlobais.length,
               itemBuilder: (context, index) {
-                final item = BudgetsScreen.listaOrcamentosGlobais[index];
-                bool isAprovado = item['status'] == 'Aprovado';
+                final orc = BudgetsScreen.listaOrcamentosGlobais[index];
+                final corStatus = _obterCorStatus(orc['status']);
 
                 return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceDark,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.borderDark),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14.0),
-                    child: Column(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    title: Text(orc['cliente'], style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 16)),
+                    subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SizedBox(height: 6),
+                        Text('Itens: ${orc['item']}', style: const TextStyle(color: AppColors.textSub, fontSize: 13)),
+                        const SizedBox(height: 4),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(item['cliente'], style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 15)),
+                            Text('R\$ ${(orc['valor'] as num).toStringAsFixed(2)} • ${orc['formaPagamento'] ?? 'Pix'}', style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
+                            const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: (isAprovado ? AppColors.successGreen : AppColors.warningOrange).withValues(alpha: 0.15),
+                                color: corStatus.withAlpha(40),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: Text(
-                                item['status'],
-                                style: TextStyle(
-                                  color: isAprovado ? AppColors.successGreen : AppColors.warningOrange,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
+                              child: Text(orc['status'] ?? 'Pendente', style: TextStyle(color: corStatus, fontSize: 11, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
-                        Text('${item['item']} • R\$ ${(item['valor'] as double).toStringAsFixed(2)}', style: const TextStyle(color: AppColors.textSub, fontSize: 13)),
-                        const Divider(color: AppColors.borderDark, height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            TextButton.icon(
-                              onPressed: () => _abrirModalOrcamento(item, index),
-                              icon: const Icon(Icons.edit, size: 16, color: AppColors.primaryBlue),
-                              label: const Text('Editar', style: TextStyle(color: AppColors.primaryBlue, fontSize: 12)),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.picture_as_pdf_rounded, color: AppColors.warningOrange),
+                          color: AppColors.surfaceDark,
+                          onSelected: (value) async {
+                            if (value == 'orcamento') {
+                              final pdfBytes = await PdfService.gerarPdfOrcamento(orcamento: orc);
+                              if (!context.mounted) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PdfPreviewScreen(
+                                    pdfBytes: pdfBytes,
+                                    nomeArquivo: 'Orcamento_${orc['cliente']}.pdf',
+                                    titulo: 'Pré-visualização do Orçamento',
+                                  ),
+                                ),
+                              );
+                            } else if (value == 'recibo') {
+                              final pdfBytes = await PdfService.gerarPdfRecibo(orcamento: orc);
+                              if (!context.mounted) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => PdfPreviewScreen(
+                                    pdfBytes: pdfBytes,
+                                    nomeArquivo: 'Recibo_${orc['cliente']}.pdf',
+                                    titulo: 'Pré-visualização do Recibo',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'orcamento',
+                              child: Text('Gerar Orçamento (PDF)', style: TextStyle(color: AppColors.textLight)),
                             ),
-                            TextButton.icon(
-                              onPressed: () => _mostrarPreviaPdf(item),
-                              icon: const Icon(Icons.picture_as_pdf, size: 16, color: Colors.redAccent),
-                              label: const Text('PDF', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                            ),
-                            TextButton.icon(
-                              onPressed: () => _enviarWhatsApp(item),
-                              icon: const Icon(Icons.chat, size: 16, color: AppColors.successGreen),
-                              label: const Text('WhatsApp', style: TextStyle(color: AppColors.successGreen, fontSize: 12)),
+                            const PopupMenuItem(
+                              value: 'recibo',
+                              child: Text('Gerar Recibo (PDF)', style: TextStyle(color: AppColors.textLight)),
                             ),
                           ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.edit_rounded, color: AppColors.textSub, size: 20),
+                          onPressed: () => _adicionarOuEditarOrcamento(orcamentoExistente: orc, index: index),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorRed, size: 20),
+                          onPressed: () => _deletarOrcamento(index),
                         ),
                       ],
                     ),
@@ -289,7 +471,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
-        onPressed: () => _abrirModalOrcamento(),
+        onPressed: () => _adicionarOuEditarOrcamento(),
         child: const Icon(Icons.add),
       ),
     );

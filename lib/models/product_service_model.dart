@@ -11,14 +11,19 @@ class ProductServiceModel {
     required this.type,
   });
 
-  Map<String, dynamic> toMap() => {'id': id, 'name': name, 'price': price, 'type': type};
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'price': price,
+        'type': type,
+      };
 
   factory ProductServiceModel.fromMap(Map<String, dynamic> map) {
     return ProductServiceModel(
       id: map['id'] ?? '',
-      name: map['name'] ?? '',
-      price: (map['price'] ?? 0.0).toDouble(),
-      type: map['type'] ?? 'servico',
+      name: map['name'] ?? map['nome'] ?? '',
+      price: (map['price'] ?? map['preco'] ?? 0.0).toDouble(),
+      type: map['type'] ?? map['tipo'] ?? 'servico',
     );
   }
 }

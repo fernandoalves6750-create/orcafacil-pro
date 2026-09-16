@@ -1,6 +1,6 @@
 name: orcafacil_pro
 description: "Aplicativo de Gestão Financeira, Orçamentos e Agendamentos para Profissionais."
-publish_to: 'none' 
+publish_to: 'none'
 
 version: 1.0.0+1
 
@@ -11,6 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Biblioteca nativa do Flutter para internacionalização e tradução de calendários/componentes
+  flutter_localizations:
+    sdk: flutter
+
   # Biblioteca padrão de ícones do Material Design
   cupertino_icons: ^1.0.6
 
@@ -19,6 +23,13 @@ dependencies:
 
   # Persistência de dados local no aparelho do usuário final
   shared_preferences: ^2.2.2
+
+  # Geração e impressão de documentos PDF profissionais
+  pdf: ^3.10.4
+  printing: ^5.11.1
+
+  # Seleção de imagens e logo da galeria do dispositivo
+  image_picker: ^1.0.7
 
 dev_dependencies:
   flutter_test:
@@ -41,3 +52,4 @@ flutter:
   # Definição de assets e imagens do aplicativo
   assets:
     - assets/
+    - assets/logo.png

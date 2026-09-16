@@ -1,100 +1,147 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_colors.dart';
-
-class ProductServiceItem {
-  String name;
-  double price;
-  String type; // 'PRODUTO' ou 'SERVIÇO'
-
-  ProductServiceItem({required this.name, required this.price, required this.type});
-}
 
 class ProductsServicesScreen extends StatefulWidget {
   const ProductsServicesScreen({super.key});
 
-  // Iniciado vazio conforme solicitado
-  static final List<ProductServiceItem> itensGlobais = [];
+  static List<Map<String, dynamic>> listaProdutosGlobais = [];
+  static const String _storageKey = 'produtos_storage_key';
+
+  static Future<void> carregarDadosPersistidos() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? dadosString = prefs.getString(_storageKey);
+      if (dadosString != null) {
+        final List<dynamic> decodificado = jsonDecode(dadosString);
+        listaProdutosGlobais = decodificado.map((item) => Map<String, dynamic>.from(item)).toList();
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar produtos: $e');
+    }
+  }
+
+  static Future<void> salvarDadosPersistidos() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String codificado = jsonEncode(listaProdutosGlobais);
+      await prefs.setString(_storageKey, codificado);
+    } catch (e) {
+      debugPrint('Erro ao salvar produtos: $e');
+    }
+  }
 
   @override
   State<ProductsServicesScreen> createState() => _ProductsServicesScreenState();
 }
 
 class _ProductsServicesScreenState extends State<ProductsServicesScreen> {
-  void _abrirModalItem([ProductServiceItem? itemExistente, int? index]) {
-    final nomeController = TextEditingController(text: itemExistente?.name ?? '');
-    final precoController = TextEditingController(text: itemExistente != null ? itemExistente.price.toString() : '');
-    String tipoSelecionado = itemExistente?.type ?? 'SERVIÇO';
+  @override
+  void initState() {
+    super.initState();
+    _carregarProdutos();
+  }
 
-    showModalBottomSheet(
+  Future<void> _carregarProdutos() async {
+    await ProductsServicesScreen.carregarDadosPersistidos();
+    if (mounted) setState(() {});
+  }
+
+  void _adicionarOuEditarProduto({Map<String, dynamic>? produtoExistente, int? index}) {
+    final nomeController = TextEditingController(text: produtoExistente?['nome'] ?? '');
+    final valorController = TextEditingController(text: produtoExistente != null ? produtoExistente['valor'].toString() : '');
+    String tipoSelecionado = produtoExistente?['tipo'] ?? 'Produto';
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surfaceDark,
       builder: (context) {
         return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
-                left: 20,
-                right: 20,
-                top: 28,
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.surfaceDark,
+              title: Text(
+                produtoExistente == null ? 'Novo Item' : 'Editar Item',
+                style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(itemExistente == null ? 'Novo Produto ou Serviço' : 'Editar Item', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textLight)),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: nomeController,
-                    style: const TextStyle(color: AppColors.textLight),
-                    decoration: const InputDecoration(labelText: 'Nome do Item', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: precoController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(color: AppColors.textLight),
-                    decoration: const InputDecoration(labelText: 'Preço (R\$)', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    dropdownColor: AppColors.surfaceDark,
-                    style: const TextStyle(color: AppColors.textLight),
-                    initialValue: tipoSelecionado, // Corrigido para initialValue
-                    decoration: const InputDecoration(labelText: 'Tipo', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-                    items: const [
-                      DropdownMenuItem(value: 'SERVIÇO', child: Text('Serviço', style: TextStyle(color: AppColors.textLight))),
-                      DropdownMenuItem(value: 'PRODUTO', child: Text('Produto', style: TextStyle(color: AppColors.textLight))),
-                    ],
-                    onChanged: (val) => setModalState(() => tipoSelecionado = val!),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(double.infinity, 50),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nomeController,
+                      style: const TextStyle(color: AppColors.textLight),
+                      decoration: const InputDecoration(
+                        labelText: 'Nome do Produto / Serviço',
+                        labelStyle: TextStyle(color: AppColors.textSub),
+                      ),
                     ),
-                    onPressed: () {
-                      final precoDouble = double.tryParse(precoController.text.replaceAll(',', '.')) ?? 0.0;
-                      if (nomeController.text.isNotEmpty && precoDouble > 0) {
-                        setState(() {
-                          final novoItem = ProductServiceItem(name: nomeController.text, price: precoDouble, type: tipoSelecionado);
-                          if (itemExistente == null) {
-                            ProductsServicesScreen.itensGlobais.add(novoItem);
-                          } else {
-                            ProductsServicesScreen.itensGlobais[index!] = novoItem;
-                          }
-                        });
-                        Navigator.pop(context);
-                      }
-                    },
-                    child: const Text('Salvar Item'),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: valorController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      style: const TextStyle(color: AppColors.textLight),
+                      decoration: const InputDecoration(
+                        labelText: 'Preço (R\$)',
+                        labelStyle: TextStyle(color: AppColors.textSub),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      value: tipoSelecionado,
+                      dropdownColor: AppColors.surfaceDark,
+                      style: const TextStyle(color: AppColors.textLight),
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo',
+                        labelStyle: TextStyle(color: AppColors.textSub),
+                      ),
+                      items: ['Produto', 'Serviço'].map((tipo) {
+                        return DropdownMenuItem(value: tipo, child: Text(tipo));
+                      }).toList(),
+                      onChanged: (novoValor) {
+                        if (novoValor != null) {
+                          setDialogState(() => tipoSelecionado = novoValor);
+                        }
+                      },
+                    ),
+                  ],
+                ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar', style: TextStyle(color: AppColors.textSub)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
+                  onPressed: () async {
+                    final nome = nomeController.text.trim();
+                    final valor = double.tryParse(valorController.text.replaceAll(',', '.')) ?? 0.0;
+
+                    if (nome.isNotEmpty && valor > 0) {
+                      final novoRegistro = {
+                        'nome': nome,
+                        'valor': valor,
+                        'tipo': tipoSelecionado,
+                      };
+
+                      setState(() {
+                        if (index == null) {
+                          ProductsServicesScreen.listaProdutosGlobais.add(novoRegistro);
+                        } else {
+                          ProductsServicesScreen.listaProdutosGlobais[index] = novoRegistro;
+                        }
+                      });
+
+                      await ProductsServicesScreen.salvarDadosPersistidos();
+
+                      if (!context.mounted) return;
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text('Salvar', style: TextStyle(color: Colors.white)),
+                ),
+              ],
             );
           },
         );
@@ -102,43 +149,65 @@ class _ProductsServicesScreenState extends State<ProductsServicesScreen> {
     );
   }
 
+  void _deletarProduto(int index) async {
+    setState(() {
+      ProductsServicesScreen.listaProdutosGlobais.removeAt(index);
+    });
+    await ProductsServicesScreen.salvarDadosPersistidos();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Produtos e Serviços')),
-      body: ProductsServicesScreen.itensGlobais.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.textSub),
-                  SizedBox(height: 12),
-                  Text('Nenhum item cadastrado.', style: TextStyle(color: AppColors.textSub, fontSize: 14)),
-                  SizedBox(height: 4),
-                  Text('Toque no botão + para adicionar produtos ou serviços.', style: TextStyle(color: AppColors.textMedium, fontSize: 12)),
-                ],
-              ),
+      backgroundColor: AppColors.backgroundDark,
+      appBar: AppBar(
+        title: const Text('Produtos & Serviços', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.surfaceDark,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: AppColors.textLight),
+            tooltip: 'Atualizar lista',
+            onPressed: () {
+              _carregarProdutos();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Lista de produtos atualizada!'), duration: Duration(seconds: 1)),
+              );
+            },
+          ),
+        ],
+      ),
+      body: ProductsServicesScreen.listaProdutosGlobais.isEmpty
+          ? const Center(
+              child: Text('Nenhum produto ou serviço cadastrado.', style: TextStyle(color: AppColors.textSub)),
             )
           : ListView.builder(
-              itemCount: ProductsServicesScreen.itensGlobais.length,
+              padding: const EdgeInsets.all(16),
+              itemCount: ProductsServicesScreen.listaProdutosGlobais.length,
               itemBuilder: (context, index) {
-                final item = ProductsServicesScreen.itensGlobais[index];
-                bool isServico = item.type == 'SERVIÇO';
-
+                final prod = ProductsServicesScreen.listaProdutosGlobais[index];
                 return Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  margin: const EdgeInsets.only(bottom: 12),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceDark,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.borderDark),
                   ),
                   child: ListTile(
-                    leading: Icon(isServico ? Icons.room_service : Icons.inventory, color: AppColors.primaryBlue),
-                    title: Text(item.name, style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
-                    subtitle: Text('R\$ ${item.price.toStringAsFixed(2)} • ${item.type}', style: const TextStyle(color: AppColors.textSub)),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.edit, color: AppColors.textSub, size: 18),
-                      onPressed: () => _abrirModalItem(item, index),
+                    title: Text(prod['nome'], style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+                    subtitle: Text('${prod['tipo']} • R\$ ${(prod['valor'] as num).toDouble().toStringAsFixed(2)}', style: const TextStyle(color: AppColors.textSub)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_rounded, color: AppColors.textSub, size: 20),
+                          onPressed: () => _adicionarOuEditarProduto(produtoExistente: prod, index: index),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorRed, size: 20),
+                          onPressed: () => _deletarProduto(index),
+                        ),
+                      ],
                     ),
                   ),
                 );
@@ -147,7 +216,7 @@ class _ProductsServicesScreenState extends State<ProductsServicesScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
-        onPressed: () => _abrirModalItem(),
+        onPressed: () => _adicionarOuEditarProduto(),
         child: const Icon(Icons.add),
       ),
     );
