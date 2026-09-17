@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,60 +10,71 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  bool _isCadastro = false;
+  bool _isLoading = false;
+
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _carregando = false;
-  bool _carregandoGoogle = false;
+  final _senhaController = TextEditingController();
+  final _nomeController = TextEditingController();
 
-  Future<void> _fazerLogin() async {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _senhaController.dispose();
+    _nomeController.dispose();
+    super.dispose();
+  }
+
+  void _submeter() async {
     final email = _emailController.text.trim();
-    final senha = _passwordController.text.trim();
+    final senha = _senhaController.text.trim();
+    final nome = _nomeController.text.trim();
 
-    if (email.isEmpty || senha.isEmpty) {
+    if (email.isEmpty || senha.isEmpty || (_isCadastro && nome.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Informe o e-mail e a senha.')),
+        const SnackBar(content: Text('Preencha todos os campos obrigatórios.')),
       );
       return;
     }
 
-    setState(() => _carregando = true);
+    setState(() => _isLoading = true);
 
-    // Validação estrita obrigatória utilizando o AuthService
-    bool loginValido = await AuthService.validarLogin(email, senha);
-
-    setState(() => _carregando = false);
-
-    if (!mounted) return;
-
-    if (loginValido) {
-      Navigator.pushReplacementNamed(context, '/main');
+    if (_isCadastro) {
+      bool cadastrado = await AuthService.cadastrarUsuario(email, senha, nome);
+      setState(() => _isLoading = false);
+      if (cadastrado && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Conta cadastrada com sucesso! Faça login.')),
+        );
+        setState(() => _isCadastro = false);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao cadastrar conta.')),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('E-mail ou senha incorretos! Verifique seus dados.'),
-          backgroundColor: AppColors.errorRed,
-        ),
-      );
+      bool valido = await AuthService.validarLogin(email, senha);
+      setState(() => _isLoading = false);
+      if (valido && mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('E-mail ou senha incorretos. Verifique suas credenciais.')),
+        );
+      }
     }
   }
 
-  Future<void> _fazerLoginGoogle() async {
-    setState(() => _carregandoGoogle = true);
+  void _fazerLoginGoogle() async {
+    setState(() => _isLoading = true);
+    bool sucesso = await AuthService.signInWithGoogle();
+    setState(() => _isLoading = false);
 
-    bool sucesso = await AuthService.loginComGoogle();
-
-    setState(() => _carregandoGoogle = false);
-
-    if (!mounted) return;
-
-    if (sucesso) {
-      Navigator.pushReplacementNamed(context, '/main');
-    } else {
+    if (sucesso && mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+    } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Login com Google cancelado ou falhou.'),
-          backgroundColor: AppColors.errorRed,
-        ),
+        const SnackBar(content: Text('Não foi possível concluir o login com o Google.')),
       );
     }
   }
@@ -72,178 +83,137 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
-      appBar: AppBar(
-        title: const Text('Fazer Login', style: TextStyle(color: AppColors.textLight)),
-        backgroundColor: AppColors.surfaceDark,
-        iconTheme: const IconThemeData(color: AppColors.textLight),
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              const Text(
-                'Bem-vindo de volta!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textLight),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Entre com sua conta para continuar.',
-                style: TextStyle(fontSize: 14, color: AppColors.textSub),
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: AppColors.textLight),
-                decoration: InputDecoration(
-                  labelText: 'E-mail',
-                  labelStyle: const TextStyle(color: AppColors.textSub),
-                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textSub),
-                  filled: true,
-                  fillColor: AppColors.surfaceDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderDark),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderDark),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primaryBlue),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                style: const TextStyle(color: AppColors.textLight),
-                decoration: InputDecoration(
-                  labelText: 'Senha',
-                  labelStyle: const TextStyle(color: AppColors.textSub),
-                  prefixIcon: const Icon(Icons.lock_outline, color: AppColors.textSub),
-                  filled: true,
-                  fillColor: AppColors.surfaceDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderDark),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderDark),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.primaryBlue),
-                  ),
-                ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, '/forgot_password');
-                  },
-                  child: const Text(
-                    'Esqueceu a senha?',
-                    style: TextStyle(color: AppColors.primaryBlue),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: AppColors.textLight,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // LOGO DO APLICATIVO AJUSTADO E SEGURO
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDark,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primaryBlue, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      size: 52,
+                      color: AppColors.primaryBlue,
                     ),
                   ),
-                  onPressed: _carregando ? null : _fazerLogin,
-                  child: _carregando
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Text(
-                          'Entrar',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              
-              // Divisor "OU"
-              Row(
-                children: const [
-                  Expanded(child: Divider(color: AppColors.borderDark)),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Text('OU', style: TextStyle(color: AppColors.textSub, fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                const Text(
+                  'OrçaFácil PRO',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
                   ),
-                  Expanded(child: Divider(color: AppColors.borderDark)),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _isCadastro ? 'Cadastre sua nova conta' : 'Acesse com suas credenciais ou Google',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.textSub, fontSize: 13),
+                ),
+                const SizedBox(height: 32),
+
+                if (_isCadastro) ...[
+                  TextField(
+                    controller: _nomeController,
+                    style: const TextStyle(color: AppColors.textLight),
+                    decoration: const InputDecoration(
+                      labelText: 'Nome Completo',
+                      labelStyle: TextStyle(color: AppColors.textSub),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
-              ),
-              const SizedBox(height: 20),
 
-              // Botão Entrar com o Google
-              SizedBox(
-                height: 50,
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: AppColors.surfaceDark,
-                    side: const BorderSide(color: AppColors.borderDark),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _carregandoGoogle ? null : _fazerLoginGoogle,
-                  icon: _carregandoGoogle
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(color: AppColors.textLight, strokeWidth: 2),
-                        )
-                      : const Icon(Icons.g_mobiledata, color: AppColors.textLight, size: 32),
-                  label: Text(
-                    _carregandoGoogle ? 'Conectando...' : 'Entrar com o Google',
-                    style: const TextStyle(
-                      color: AppColors.textLight,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  style: const TextStyle(color: AppColors.textLight),
+                  decoration: const InputDecoration(
+                    labelText: 'E-mail',
+                    labelStyle: TextStyle(color: AppColors.textSub),
                   ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _senhaController,
+                  obscureText: true,
+                  style: const TextStyle(color: AppColors.textLight),
+                  decoration: const InputDecoration(
+                    labelText: 'Senha',
+                    labelStyle: TextStyle(color: AppColors.textSub),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Não tem uma conta?', style: TextStyle(color: AppColors.textSub)),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/register');
-                    },
-                    child: const Text(
-                      'Cadastre-se',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue,
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryBlue,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onPressed: _submeter,
+                            child: Text(
+                              _isCadastro ? 'Cadastrar Conta' : 'Entrar',
+                              style: const TextStyle(color: Colors.white, fontSize: 15),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          const Row(
+                            children: [
+                              Expanded(child: Divider(color: AppColors.borderDark)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('ou', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
+                              ),
+                              Expanded(child: Divider(color: AppColors.borderDark)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          
+                          // BOTÃO DO GOOGLE BLINDADO (Sem falhas de imagem SVG externa)
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: _fazerLoginGoogle,
+                            icon: const Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
+                            label: const Text('Entrar com o Google', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
                       ),
-                    ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _isCadastro = !_isCadastro;
+                    });
+                  },
+                  child: Text(
+                    _isCadastro ? 'Já tem uma conta? Faça login' : 'Não tem conta? Cadastre-se aqui',
+                    style: const TextStyle(color: AppColors.primaryBlue),
                   ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

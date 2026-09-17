@@ -2,22 +2,35 @@ import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../../core/services/storage_service.dart';
 
 class PdfService {
+  static pw.Font? _fontRegularCache;
+  static pw.Font? _fontBoldCache;
+
+  static Future<void> _initFonts() async {
+    _fontRegularCache ??= await PdfGoogleFonts.robotoRegular();
+    _fontBoldCache ??= await PdfGoogleFonts.robotoBold();
+  }
+
   // Geração de PDF de Orçamento
   static Future<Uint8List> gerarPdfOrcamento({
     required Map<String, dynamic> orcamento,
     Map<String, dynamic>? dadosEmpresa,
   }) async {
+    await _initFonts();
     final pdf = pw.Document();
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontRegular = _fontRegularCache!;
+    final fontBold = _fontBoldCache!;
 
-    final nomeEmpresa = dadosEmpresa?['nome'] ?? 'FS Manutenção e Suporte em Informática';
-    final cnpjEmpresa = dadosEmpresa?['cnpj'] ?? 'CNPJ: 00.000.000/0001-00';
-    final contatoEmpresa = dadosEmpresa?['contato'] ?? 'contato@fsmanutencao.com.br | (11) 90000-0000';
+    final nomeEmpresa = dadosEmpresa?['nome'] ?? '';
+    final cnpjEmpresa = dadosEmpresa?['cnpj'] ?? '';
+    final contatoEmpresa = dadosEmpresa?['contato'] ?? '';
+    
+    Uint8List? logoBytes = dadosEmpresa?['logoBytes'] ?? StorageService.logoCacheGlobal;
 
+    final numeroOrcamento = orcamento['numero'] ?? orcamento['id'] ?? '#001';
     final cliente = orcamento['cliente'] ?? 'Cliente não informado';
     final dataOrcamento = orcamento['data'] ?? DateTime.now().toString().substring(0, 10);
     final itens = (orcamento['itens'] as List<dynamic>?) ?? [
@@ -42,23 +55,53 @@ class PdfService {
             children: [
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(nomeEmpresa, style: pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.blue800)),
-                      pw.SizedBox(height: 4),
-                      pw.Text(cnpjEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 9, color: PdfColors.grey700)),
-                      pw.Text(contatoEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 9, color: PdfColors.grey700)),
-                    ],
+                  pw.Expanded(
+                    child: pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        if (logoBytes != null) ...[
+                          pw.Image(
+                            pw.MemoryImage(logoBytes),
+                            width: 45,
+                            height: 45,
+                            fit: pw.BoxFit.contain,
+                          ),
+                          pw.SizedBox(width: 12),
+                        ],
+                        pw.Expanded(
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              if (nomeEmpresa.isNotEmpty)
+                                pw.Text(nomeEmpresa, style: pw.TextStyle(font: fontBold, fontSize: 16, color: PdfColors.blue800)),
+                              if (nomeEmpresa.isNotEmpty) pw.SizedBox(height: 2),
+                              if (cnpjEmpresa.isNotEmpty)
+                                pw.Text(cnpjEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.grey700)),
+                              if (contatoEmpresa.isNotEmpty)
+                                pw.Text(contatoEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.grey700)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  pw.SizedBox(width: 10),
                   pw.Container(
                     padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: pw.BoxDecoration(
                       border: pw.Border.all(color: PdfColors.blue800, width: 1.5),
                       borderRadius: pw.BorderRadius.circular(6),
                     ),
-                    child: pw.Text('ORÇAMENTO', style: pw.TextStyle(font: fontBold, fontSize: 12, color: PdfColors.blue800)),
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      children: [
+                        pw.Text('ORÇAMENTO', style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.blue800)),
+                        pw.SizedBox(height: 2),
+                        pw.Text('$numeroOrcamento', style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.blue900)),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -131,6 +174,29 @@ class PdfService {
                 ],
               ),
               pw.Spacer(),
+
+              if (StorageService.assinaturaCacheGlobal != null) ...[
+                pw.Center(
+                  child: pw.Column(
+                    children: [
+                      pw.Image(
+                        pw.MemoryImage(StorageService.assinaturaCacheGlobal!),
+                        width: 140,
+                        height: 50,
+                        fit: pw.BoxFit.contain,
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.SizedBox(
+                        width: 180,
+                        child: pw.Divider(color: PdfColors.grey700, thickness: 1),
+                      ),
+                      pw.Text('Assinatura do Profissional', style: pw.TextStyle(font: fontRegular, fontSize: 8, color: PdfColors.grey600)),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+              ],
+
               pw.Divider(color: PdfColors.grey400, thickness: 0.5),
               pw.Center(
                 child: pw.Text('Orçamento válido por 10 dias.', style: pw.TextStyle(font: fontRegular, fontSize: 8, color: PdfColors.grey600)),
@@ -149,14 +215,17 @@ class PdfService {
     required Map<String, dynamic> orcamento,
     Map<String, dynamic>? dadosEmpresa,
   }) async {
+    await _initFonts();
     final pdf = pw.Document();
 
-    final fontRegular = await PdfGoogleFonts.robotoRegular();
-    final fontBold = await PdfGoogleFonts.robotoBold();
+    final fontRegular = _fontRegularCache!;
+    final fontBold = _fontBoldCache!;
 
-    final nomeEmpresa = dadosEmpresa?['nome'] ?? 'FS Manutenção e Suporte em Informática';
-    final cnpjEmpresa = dadosEmpresa?['cnpj'] ?? 'CNPJ: 00.000.000/0001-00';
-    final contatoEmpresa = dadosEmpresa?['contato'] ?? 'contato@fsmanutencao.com.br | (11) 90000-0000';
+    final nomeEmpresa = dadosEmpresa?['nome'] ?? '';
+    final cnpjEmpresa = dadosEmpresa?['cnpj'] ?? '';
+    final contatoEmpresa = dadosEmpresa?['contato'] ?? '';
+    
+    Uint8List? logoBytes = dadosEmpresa?['logoBytes'] ?? StorageService.logoCacheGlobal;
 
     final cliente = orcamento['cliente'] ?? 'Cliente não informado';
     final dataRecibo = orcamento['data'] ?? DateTime.now().toString().substring(0, 10);
@@ -174,34 +243,60 @@ class PdfService {
             children: [
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(nomeEmpresa, style: pw.TextStyle(font: fontBold, fontSize: 18, color: PdfColors.green800)),
-                      pw.SizedBox(height: 4),
-                      pw.Text(cnpjEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 9, color: PdfColors.grey700)),
-                      pw.Text(contatoEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 9, color: PdfColors.grey700)),
-                    ],
+                  pw.Expanded(
+                    child: pw.Row(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        if (logoBytes != null) ...[
+                          pw.Image(
+                            pw.MemoryImage(logoBytes),
+                            width: 45,
+                            height: 45,
+                            fit: pw.BoxFit.contain,
+                          ),
+                          pw.SizedBox(width: 12),
+                        ],
+                        pw.Expanded(
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              if (nomeEmpresa.isNotEmpty)
+                                pw.Text(nomeEmpresa, style: pw.TextStyle(font: fontBold, fontSize: 14, color: PdfColors.blue800)),
+                              if (nomeEmpresa.isNotEmpty) pw.SizedBox(height: 2),
+                              if (cnpjEmpresa.isNotEmpty)
+                                pw.Text(cnpjEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.grey700)),
+                              if (contatoEmpresa.isNotEmpty)
+                                pw.Text(contatoEmpresa, style: pw.TextStyle(font: fontRegular, fontSize: 8.5, color: PdfColors.grey700)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  pw.SizedBox(width: 10),
                   pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.green800, width: 1.5),
+                      border: pw.Border.all(color: PdfColors.blue800, width: 1.5),
                       borderRadius: pw.BorderRadius.circular(6),
                     ),
-                    child: pw.Text('RECIBO DE PAGAMENTO', style: pw.TextStyle(font: fontBold, fontSize: 12, color: PdfColors.green800)),
+                    child: pw.Text(
+                      'RECIBO DE PAGAMENTO',
+                      style: pw.TextStyle(font: fontBold, fontSize: 9.5, color: PdfColors.blue800),
+                    ),
                   ),
                 ],
               ),
-              pw.Divider(color: PdfColors.grey400, thickness: 1, height: 30),
+              pw.Divider(color: PdfColors.grey400, thickness: 1, height: 25),
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.end,
                 children: [
                   pw.Text('Data: $dataRecibo', style: pw.TextStyle(font: fontBold, fontSize: 11)),
                 ],
               ),
-              pw.SizedBox(height: 20),
+              pw.SizedBox(height: 16),
               pw.Container(
                 width: double.infinity,
                 padding: const pw.EdgeInsets.all(16),
@@ -214,7 +309,7 @@ class PdfService {
                   children: [
                     pw.Text('VALOR RECEBIDO:', style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.grey600)),
                     pw.SizedBox(height: 4),
-                    pw.Text('R\$ ${valor.toStringAsFixed(2)}', style: pw.TextStyle(font: fontBold, fontSize: 22, color: PdfColors.green900)),
+                    pw.Text('R\$ ${valor.toStringAsFixed(2)}', style: pw.TextStyle(font: fontBold, fontSize: 22, color: PdfColors.blue900)),
                   ],
                 ),
               ),
@@ -229,17 +324,41 @@ class PdfService {
               pw.SizedBox(height: 16),
               pw.Text('Forma de Pagamento: $formaPagamento', style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.grey800)),
               pw.Spacer(),
-              pw.Divider(color: PdfColors.grey400, thickness: 0.5),
-              pw.SizedBox(height: 30),
-              pw.Center(
-                child: pw.Column(
-                  children: [
-                    pw.SizedBox(width: 250, child: pw.Divider(color: PdfColors.black, thickness: 1)),
-                    pw.SizedBox(height: 4),
-                    pw.Text(nomeEmpresa, style: pw.TextStyle(font: fontBold, fontSize: 10)),
-                  ],
+
+              if (StorageService.assinaturaCacheGlobal != null) ...[
+                pw.Center(
+                  child: pw.Column(
+                    children: [
+                      pw.Image(
+                        pw.MemoryImage(StorageService.assinaturaCacheGlobal!),
+                        width: 140,
+                        height: 50,
+                        fit: pw.BoxFit.contain,
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.SizedBox(
+                        width: 180,
+                        child: pw.Divider(color: PdfColors.grey700, thickness: 1),
+                      ),
+                      if (nomeEmpresa.isNotEmpty)
+                        pw.Text(nomeEmpresa, style: pw.TextStyle(font: fontBold, fontSize: 9)),
+                    ],
+                  ),
                 ),
-              ),
+                pw.SizedBox(height: 15),
+              ] else if (nomeEmpresa.isNotEmpty) ...[
+                pw.Center(
+                  child: pw.Column(
+                    children: [
+                      pw.SizedBox(width: 250, child: pw.Divider(color: PdfColors.black, thickness: 1)),
+                      pw.SizedBox(height: 4),
+                      pw.Text(nomeEmpresa, style: pw.TextStyle(font: fontBold, fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ],
+
+              pw.Divider(color: PdfColors.grey400, thickness: 0.5),
             ],
           );
         },

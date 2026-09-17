@@ -11,36 +11,24 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # Biblioteca nativa do Flutter para internacionalização e tradução de calendários/componentes
   flutter_localizations:
     sdk: flutter
 
-  # Biblioteca padrão de ícones do Material Design
   cupertino_icons: ^1.0.6
-
-  # Biblioteca para abrir o WhatsApp e links externos
   url_launcher: ^6.2.5
-
-  # Persistência de dados local no aparelho do usuário final
   shared_preferences: ^2.2.2
-
-  # Geração e impressão de documentos PDF profissionais
   pdf: ^3.10.4
   printing: ^5.11.1
-
-  # Seleção de imagens e logo da galeria do dispositivo
   image_picker: ^1.0.7
+  google_sign_in: ^6.2.1
+  signature: ^5.4.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  
   flutter_lints: ^3.0.0
-
-  # Gerador automático do ícone do aplicativo para Android e iOS
   flutter_launcher_icons: "^0.13.1"
 
-# Configuração do gerador de ícone do app
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
@@ -48,8 +36,6 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
-
-  # Definição de assets e imagens do aplicativo
   assets:
     - assets/
     - assets/logo.png

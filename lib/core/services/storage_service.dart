@@ -1,56 +1,67 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../screens/budgets/budgets_screen.dart';
 import '../../screens/appointments/appointments_screen.dart';
 import '../../screens/products/products_services_screen.dart';
+import '../../screens/finance/finance_screen.dart';
 
 class StorageService {
   static const String _keyBudgets = 'orcafacil_budgets_list';
   static const String _keyAppointments = 'orcafacil_appointments_list';
-  static const String _keyProducts = 'produtos_cadastrados';
-  static const String _keyCompany = 'orcafacil_company_data';
+  static const String _keyProducts = 'produtos_cadastrados_key_oficial';
+  static const String _keyFinance = 'orcafacil_finance_list';
+  static const String _keySignature = 'orcafacil_user_signature_bytes';
+  static const String _keyLogo = 'orcafacil_user_logo_bytes'; // Chave exclusiva para a logo
 
-  // Cache global unificado de produtos
   static List<Map<String, dynamic>> produtosCacheGlobal = [];
+  static Uint8List? assinaturaCacheGlobal;
+  static Uint8List? logoCacheGlobal; // Cache global da Logo
 
-  // Carrega todos os dados do SharedPreferences para as listas globais
   static Future<void> carregarTudo() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // 1. Carregar Orçamentos
+    // 1. Orçamentos
     final String? budgetsStr = prefs.getString(_keyBudgets);
     if (budgetsStr != null) {
       try {
         final List decoded = jsonDecode(budgetsStr);
-        BudgetsScreen.listaOrcamentosGlobais = decoded
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
+        BudgetsScreen.listaOrcamentosGlobais = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
       } catch (_) {
         BudgetsScreen.listaOrcamentosGlobais = [];
       }
     }
 
-    // 2. Carregar Agendamentos (Agenda)
+    // 2. Agendamentos
     final String? appointmentsStr = prefs.getString(_keyAppointments);
     if (appointmentsStr != null) {
       try {
         final List decoded = jsonDecode(appointmentsStr);
-        AppointmentsScreen.agendaGlobal = decoded
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
+        AppointmentsScreen.agendaGlobal = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
       } catch (_) {
         AppointmentsScreen.agendaGlobal = [];
       }
     }
 
-    // 3. Carregar Produtos e Serviços de forma unificada
+    // 3. Financeiro
+    final String? financeStr = prefs.getString(_keyFinance);
+    if (financeStr != null) {
+      try {
+        final List decoded = jsonDecode(financeStr);
+        FinanceScreen.listaFinanceiraGlobal = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
+      } catch (_) {
+        FinanceScreen.listaFinanceiraGlobal = [];
+      }
+    } else {
+      FinanceScreen.listaFinanceiraGlobal = [];
+    }
+
+    // 4. Produtos e Serviços
     final String? productsStr = prefs.getString(_keyProducts);
     if (productsStr != null) {
       try {
         final List decoded = jsonDecode(productsStr);
-        produtosCacheGlobal = decoded
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList();
+        produtosCacheGlobal = decoded.map((item) => Map<String, dynamic>.from(item)).toList();
         ProductsServicesScreen.listaProdutosGlobais = produtosCacheGlobal;
       } catch (_) {
         produtosCacheGlobal = [];
@@ -60,36 +71,76 @@ class StorageService {
       produtosCacheGlobal = [];
       ProductsServicesScreen.listaProdutosGlobais = [];
     }
+
+    // 5. Carregar Assinatura
+    final String? signatureBase64 = prefs.getString(_keySignature);
+    if (signatureBase64 != null && signatureBase64.isNotEmpty) {
+      try {
+        assinaturaCacheGlobal = base64Decode(signatureBase64);
+      } catch (_) {
+        assinaturaCacheGlobal = null;
+      }
+    } else {
+      assinaturaCacheGlobal = null;
+    }
+
+    // 6. Carregar Logo da Empresa
+    final String? logoBase64 = prefs.getString(_keyLogo);
+    if (logoBase64 != null && logoBase64.isNotEmpty) {
+      try {
+        logoCacheGlobal = base64Decode(logoBase64);
+      } catch (_) {
+        logoCacheGlobal = null;
+      }
+    } else {
+      logoCacheGlobal = null;
+    }
   }
 
-  // Salvar Orçamentos
+  // Método para salvar a assinatura
+  static Future<void> salvarAssinatura(Uint8List bytes) async {
+    final prefs = await SharedPreferences.getInstance();
+    assinaturaCacheGlobal = bytes;
+    await prefs.setString(_keySignature, base64Encode(bytes));
+  }
+
+  // Método para salvar o Logotipo permanentemente
+  static Future<void> salvarLogo(Uint8List bytes) async {
+    final prefs = await SharedPreferences.getInstance();
+    logoCacheGlobal = bytes;
+    await prefs.setString(_keyLogo, base64Encode(bytes));
+  }
+
   static Future<void> salvarBudgets() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyBudgets, jsonEncode(BudgetsScreen.listaOrcamentosGlobais));
   }
 
-  // Salvar Agendamentos
   static Future<void> salvarAppointments() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyAppointments, jsonEncode(AppointmentsScreen.agendaGlobal));
   }
 
-  // Salvar Produtos e Serviços
   static Future<void> salvarProducts() async {
     final prefs = await SharedPreferences.getInstance();
     produtosCacheGlobal = List<Map<String, dynamic>>.from(ProductsServicesScreen.listaProdutosGlobais);
     await prefs.setString(_keyProducts, jsonEncode(produtosCacheGlobal));
   }
 
-  static Future<void> salvarFinance() async {}
+  static Future<void> salvarFinance() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFinance, jsonEncode(FinanceScreen.listaFinanceiraGlobal));
+  }
 
-  // Limpar dados do app
   static Future<void> limparTudo() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     BudgetsScreen.listaOrcamentosGlobais.clear();
     AppointmentsScreen.agendaGlobal.clear();
     ProductsServicesScreen.listaProdutosGlobais.clear();
+    FinanceScreen.listaFinanceiraGlobal.clear();
     produtosCacheGlobal.clear();
+    assinaturaCacheGlobal = null;
+    logoCacheGlobal = null;
   }
 }

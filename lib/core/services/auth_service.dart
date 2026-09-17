@@ -1,106 +1,115 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthService {
-  static const String _keyRegisteredUsers = 'registered_users_db_key_v2';
-  static const String _keyCurrentUser = 'current_logged_user_key';
+  static const String _keyIsLoggedIn = 'orcafacil_is_logged_in';
+  static const String _keyUserEmail = 'orcafacil_user_email';
+  static const String _keyUserName = 'orcafacil_user_name';
+  static const String _keyUserPhoto = 'orcafacil_user_photo';
 
-  // Configuração do Google Sign-In com o Client ID fornecido
+  // Configurado com o Client ID Web para funcionar em ambas as plataformas
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb ? '1098844585019-osrcpkkju2lgo255vrskudld3jlhllop.apps.googleusercontent.com' : null,
-    serverClientId: '1098844585019-osrcpkkju2lgo255vrskudld3jlhllop.apps.googleusercontent.com',
+    clientId: '1098844585019-osrcpkkju2lgo255vrskudld3jhhllop.apps.googleusercontent.com',
+    scopes: ['email', 'profile'],
   );
 
-  // Cadastra um novo usuário localmente (E-mail e Senha)
-  static Future<bool> registrarUsuario(String email, String senha) async {
+  static String? nomeUsuario;
+  static String? emailUsuario;
+  static String? fotoUsuario;
+  static bool isLoggedIn = false;
+
+  static Future<void> carregarSessao() async {
+    final prefs = await SharedPreferences.getInstance();
+    isLoggedIn = prefs.getBool(_keyIsLoggedIn) ?? false;
+    nomeUsuario = prefs.getString(_keyUserName);
+    emailUsuario = prefs.getString(_keyUserEmail);
+    fotoUsuario = prefs.getString(_keyUserPhoto);
+  }
+
+  // 1. Cadastrar novo usuário (Email e Senha)
+  static Future<bool> cadastrarUsuario(String email, String senha, String nome) async {
+    if (email.isEmpty || senha.isEmpty || nome.isEmpty) return false;
+    final prefs = await SharedPreferences.getInstance();
+    
+    await prefs.setString('pass_$email', senha);
+    await prefs.setString('name_$email', nome);
+    
+    return true;
+  }
+
+  // 2. Validar Login com Email e Senha
+  static Future<bool> validarLogin(String email, String senha) async {
+    final prefs = await SharedPreferences.getInstance();
+    final senhaSalva = prefs.getString('pass_$email');
+    final nomeSalvo = prefs.getString('name_$email');
+
+    if (senhaSalva != null && senhaSalva == senha) {
+      nomeUsuario = nomeSalvo ?? 'Profissional';
+      emailUsuario = email;
+      fotoUsuario = null;
+      isLoggedIn = true;
+
+      await prefs.setBool(_keyIsLoggedIn, true);
+      await prefs.setString(_keyUserName, nomeUsuario!);
+      await prefs.setString(_keyUserEmail, emailUsuario!);
+      await prefs.remove(_keyUserPhoto);
+      return true;
+    }
+    return false;
+  }
+
+  // 3. Login com o Google (Blindado contra falhas de decodificação de imagem)
+  static Future<bool> signInWithGoogle() async {
     try {
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.signOut();
+      }
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return false; // Usuário cancelou ou fechou a janela
+      }
+
+      nomeUsuario = googleUser.displayName ?? 'Usuário';
+      emailUsuario = googleUser.email;
+      
+      // Forçado como nulo para evitar qualquer tentativa de decodificação nativa incompatível no Android
+      fotoUsuario = null;
+
+      isLoggedIn = true;
+
       final prefs = await SharedPreferences.getInstance();
-      final usersString = prefs.getString(_keyRegisteredUsers);
-      List<dynamic> usersList = usersString != null ? jsonDecode(usersString) : [];
+      await prefs.setBool(_keyIsLoggedIn, true);
+      await prefs.setString(_keyUserName, nomeUsuario!);
+      await prefs.setString(_keyUserEmail, emailUsuario!);
+      await prefs.remove(_keyUserPhoto);
 
-      // Verifica se o e-mail já existe
-      bool existe = usersList.any((u) => u['email'].toString().toLowerCase() == email.toLowerCase());
-      if (existe) return false;
-
-      // Adiciona o novo usuário
-      usersList.add({'email': email, 'senha': senha});
-      await prefs.setString(_keyRegisteredUsers, jsonEncode(usersList));
       return true;
     } catch (e) {
-      debugPrint('Erro ao registrar usuário: $e');
-      return false;
-    }
-  }
-
-  // Validação de login local (E-mail e Senha)
-  static Future<bool> validarLogin(String email, String senha) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final usersString = prefs.getString(_keyRegisteredUsers);
+      debugPrint('ERRO EXATO GOOGLE SIGN IN: $e');
       
-      List<dynamic> usersList = usersString != null ? jsonDecode(usersString) : [];
-
-      // Se não houver nenhum usuário cadastrado ainda, cadastra este automaticamente para testes
-      if (usersList.isEmpty) {
-        usersList.add({'email': email, 'senha': senha});
-        await prefs.setString(_keyRegisteredUsers, jsonEncode(usersList));
-        await prefs.setString(_keyCurrentUser, email);
-        return true;
+      if (e.toString().contains('popup_closed') || e.toString().contains('canceled')) {
+        return false;
       }
-
-      // Valida se o e-mail e a senha conferem exatamente com o cadastro
-      bool senhaValida = usersList.any((u) => u['email'].toString().toLowerCase() == email.toLowerCase() && u['senha'] == senha);
-
-      if (senhaValida) {
-        await prefs.setString(_keyCurrentUser, email);
-      }
-
-      return senhaValida;
-    } catch (e) {
-      debugPrint('Erro ao validar login: $e');
       return false;
     }
   }
 
-  // Login com o Google
-  static Future<bool> loginComGoogle() async {
+  static Future<void> signOut() async {
     try {
-      // Abre a janela de seleção de conta do Google
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      
-      if (googleUser != null) {
-        final prefs = await SharedPreferences.getInstance();
-        // Salva o e-mail do Google como usuário logado atual
-        await prefs.setString(_keyCurrentUser, googleUser.email);
-        return true;
-      }
-      return false;
-    } catch (e) {
-      debugPrint('Erro no login com Google: $e');
-      return false;
-    }
-  }
-
-  // Retorna o e-mail do usuário atualmente logado
-  static Future<String?> obterUsuarioAtual() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getString(_keyCurrentUser);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Logout geral (limpa a sessão local e desconecta do Google)
-  static Future<void> logout() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyCurrentUser);
       await _googleSignIn.signOut();
-    } catch (e) {
-      debugPrint('Erro ao fazer logout: $e');
-    }
+    } catch (_) {}
+
+    isLoggedIn = false;
+    nomeUsuario = null;
+    emailUsuario = null;
+    fotoUsuario = null;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyIsLoggedIn);
+    await prefs.remove(_keyUserName);
+    await prefs.remove(_keyUserEmail);
+    await prefs.remove(_keyUserPhoto);
   }
 }

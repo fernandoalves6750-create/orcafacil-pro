@@ -6,11 +6,11 @@ class EmpresaService {
   static const String _keyEmpresaData = 'empresa_dados_storage_key_v2';
 
   static Map<String, dynamic> dadosEmpresa = {
-    'nome': 'FS Manutenção e Suporte em Informática',
-    'cnpj': '00.000.000/0001-00',
-    'contato': 'contato@fsmanutencao.com.br | (11) 90000-0000',
-    'assinatura': 'Assinado digitalmente por FS Manutenção',
-    'logoPath': '', // Caminho ou URI da imagem do logo selecionada
+    'nome': '',
+    'cnpj': '',
+    'contato': '',
+    'assinatura': '',
+    'logoPath': '',
   };
 
   static Future<void> carregarEmpresa() async {
@@ -18,7 +18,8 @@ class EmpresaService {
       final prefs = await SharedPreferences.getInstance();
       final dataStr = prefs.getString(_keyEmpresaData);
       if (dataStr != null) {
-        dadosEmpresa = Map<String, dynamic>.from(jsonDecode(dataStr));
+        final decoded = Map<String, dynamic>.from(jsonDecode(dataStr));
+        dadosEmpresa = {...dadosEmpresa, ...decoded};
       }
     } catch (e) {
       debugPrint('Erro ao carregar dados da empresa: $e');
@@ -27,7 +28,7 @@ class EmpresaService {
 
   static Future<void> salvarEmpresa(Map<String, dynamic> novosDados) async {
     try {
-      dadosEmpresa = novosDados;
+      dadosEmpresa = {...dadosEmpresa, ...novosDados};
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyEmpresaData, jsonEncode(dadosEmpresa));
     } catch (e) {

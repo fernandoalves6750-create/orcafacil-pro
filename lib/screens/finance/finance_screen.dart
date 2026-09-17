@@ -35,108 +35,19 @@ class _FinanceScreenState extends State<FinanceScreen> {
     await StorageService.salvarFinance();
   }
 
-  void _adicionarOuEditarTransacao({Map<String, dynamic>? transacaoExistente, int? index}) {
-    final descricaoController = TextEditingController(text: transacaoExistente?['descricao'] ?? '');
-    final valorController = TextEditingController(text: transacaoExistente != null ? transacaoExistente['valor'].toString() : '');
-    String tipoSelecionado = transacaoExistente?['tipo'] ?? 'Receita';
-    String statusSelecionado = transacaoExistente?['status'] ?? 'Recebido';
+  void _abrirTelaFormularioTransacao({Map<String, dynamic>? transacaoExistente, int? index}) async {
+    await StorageService.carregarTudo();
+    if (!mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: AppColors.surfaceDark,
-              title: Text(
-                transacaoExistente == null ? 'Nova Transação' : 'Editar Transação',
-                style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: descricaoController,
-                      style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(labelText: 'Descrição', labelStyle: TextStyle(color: AppColors.textSub)),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: valorController,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(labelText: 'Valor (R\$)', labelStyle: TextStyle(color: AppColors.textSub)),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: tipoSelecionado,
-                      dropdownColor: AppColors.surfaceDark,
-                      style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(labelText: 'Tipo', labelStyle: TextStyle(color: AppColors.textSub)),
-                      items: ['Receita', 'Despesa'].map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo))).toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setDialogState(() => tipoSelecionado = v);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: statusSelecionado,
-                      dropdownColor: AppColors.surfaceDark,
-                      style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(labelText: 'Status', labelStyle: TextStyle(color: AppColors.textSub)),
-                      items: ['Recebido', 'Pendente', 'Pago'].map((st) => DropdownMenuItem(value: st, child: Text(st))).toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          setDialogState(() => statusSelecionado = v);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: AppColors.textSub)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
-                  onPressed: () async {
-                    final descricao = descricaoController.text.trim();
-                    final valor = double.tryParse(valorController.text.replaceAll(',', '.')) ?? 0.0;
-
-                    if (descricao.isNotEmpty && valor > 0) {
-                      final novoRegistro = {
-                        'descricao': descricao,
-                        'valor': valor,
-                        'tipo': tipoSelecionado,
-                        'status': statusSelecionado,
-                      };
-
-                      setState(() {
-                        if (index == null) {
-                          FinanceScreen.listaFinanceiraGlobal.add(novoRegistro);
-                        } else {
-                          FinanceScreen.listaFinanceiraGlobal[index] = novoRegistro;
-                        }
-                      });
-
-                      await StorageService.salvarFinance();
-
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
-                    }
-                  },
-                  child: const Text('Salvar', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            );
-          },
-        );
-      },
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FormularioTransacaoScreen(
+          transacaoExistente: transacaoExistente,
+          index: index,
+          onSalvo: () => _carregarDados(),
+        ),
+      ),
     );
   }
 
@@ -228,7 +139,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.account_balance_wallet_outlined, size: 64, color: AppColors.textMedium),
+                        Icon(Icons.account_balance_wallet_outlined, size: 64, color: AppColors.textSub),
                         SizedBox(height: 16),
                         Text(
                           'Nenhum lançamento financeiro.',
@@ -261,7 +172,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          // Checkbox adicionado nas receitas para marcar como recebido instantaneamente
                           leading: isReceita
                               ? Checkbox(
                                   value: isRecebido,
@@ -284,7 +194,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit_rounded, color: AppColors.textSub, size: 20),
-                                onPressed: () => _adicionarOuEditarTransacao(transacaoExistente: tr, index: index),
+                                onPressed: () => _abrirTelaFormularioTransacao(transacaoExistente: tr, index: index),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorRed, size: 20),
@@ -302,7 +212,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
-        onPressed: () => _adicionarOuEditarTransacao(),
+        onPressed: () => _abrirTelaFormularioTransacao(),
         child: const Icon(Icons.add),
       ),
     );
@@ -339,6 +249,154 @@ class _FinanceScreenState extends State<FinanceScreen> {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// TELA CHEIA SEPARADA PARA TRANSAÇÃO FINANCEIRA (Elimina travamentos e estouros com o teclado)
+class FormularioTransacaoScreen extends StatefulWidget {
+  final Map<String, dynamic>? transacaoExistente;
+  final int? index;
+  final VoidCallback onSalvo;
+
+  const FormularioTransacaoScreen({super.key, this.transacaoExistente, this.index, required this.onSalvo});
+
+  @override
+  State<FormularioTransacaoScreen> createState() => _FormularioTransacaoScreenState();
+}
+
+class _FormularioTransacaoScreenState extends State<FormularioTransacaoScreen> {
+  late final TextEditingController descricaoController;
+  late final TextEditingController valorController;
+  String tipoSelecionado = 'Receita';
+  String statusSelecionado = 'Recebido';
+
+  @override
+  void initState() {
+    super.initState();
+    descricaoController = TextEditingController(text: widget.transacaoExistente?['descricao'] ?? '');
+    valorController = TextEditingController(text: widget.transacaoExistente != null ? widget.transacaoExistente!['valor'].toString() : '');
+    tipoSelecionado = widget.transacaoExistente?['tipo'] ?? 'Receita';
+    statusSelecionado = widget.transacaoExistente?['status'] ?? 'Recebido';
+  }
+
+  @override
+  void dispose() {
+    descricaoController.dispose();
+    valorController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
+      appBar: AppBar(
+        title: Text(widget.transacaoExistente == null ? 'Nova Transação' : 'Editar Transação', style: const TextStyle(color: AppColors.textLight)),
+        backgroundColor: AppColors.surfaceDark,
+        iconTheme: const IconThemeData(color: AppColors.textLight),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: descricaoController,
+              style: const TextStyle(color: AppColors.textLight),
+              decoration: const InputDecoration(
+                labelText: 'Descrição',
+                labelStyle: TextStyle(color: AppColors.textSub),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: valorController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              style: const TextStyle(color: AppColors.textLight),
+              decoration: const InputDecoration(
+                labelText: 'Valor (R\$)',
+                labelStyle: TextStyle(color: AppColors.textSub),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: tipoSelecionado,
+              dropdownColor: AppColors.surfaceDark,
+              style: const TextStyle(color: AppColors.textLight),
+              decoration: const InputDecoration(
+                labelText: 'Tipo',
+                labelStyle: TextStyle(color: AppColors.textSub),
+                border: OutlineInputBorder(),
+              ),
+              items: ['Receita', 'Despesa'].map((tipo) => DropdownMenuItem(value: tipo, child: Text(tipo))).toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => tipoSelecionado = v);
+                }
+              },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: statusSelecionado,
+              dropdownColor: AppColors.surfaceDark,
+              style: const TextStyle(color: AppColors.textLight),
+              decoration: const InputDecoration(
+                labelText: 'Status',
+                labelStyle: TextStyle(color: AppColors.textSub),
+                border: OutlineInputBorder(),
+              ),
+              items: ['Recebido', 'Pendente', 'Pago'].map((st) => DropdownMenuItem(value: st, child: Text(st))).toList(),
+              onChanged: (v) {
+                if (v != null) {
+                  setState(() => statusSelecionado = v);
+                }
+              },
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              onPressed: () async {
+                final descricao = descricaoController.text.trim();
+                final valor = double.tryParse(valorController.text.replaceAll(',', '.')) ?? 0.0;
+
+                if (descricao.isNotEmpty && valor > 0) {
+                  final novoRegistro = {
+                    'descricao': descricao,
+                    'valor': valor,
+                    'tipo': tipoSelecionado,
+                    'status': statusSelecionado,
+                  };
+
+                  setState(() {
+                    if (widget.index == null) {
+                      FinanceScreen.listaFinanceiraGlobal.add(novoRegistro);
+                    } else {
+                      FinanceScreen.listaFinanceiraGlobal[widget.index!] = novoRegistro;
+                    }
+                  });
+
+                  await StorageService.salvarFinance();
+                  widget.onSalvo();
+
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Transação salva com sucesso!'), backgroundColor: AppColors.surfaceDark),
+                  );
+                }
+              },
+              child: const Text('Salvar Transação', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
       ),
     );
   }

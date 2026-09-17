@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/services/empresa_service.dart';
 import '../budgets/budgets_screen.dart';
 import '../appointments/appointments_screen.dart';
 import '../finance/finance_screen.dart';
@@ -67,13 +68,18 @@ class DashboardScreen extends StatelessWidget {
     final saldoEmCaixa = totalRecebido - totalDespesas;
     final corSaldo = saldoEmCaixa >= 0 ? AppColors.primaryBlue : AppColors.errorRed;
 
+    // Nome da empresa vindo do EmpresaService (com fallback caso esteja vazio)
+    final nomeEmpresa = EmpresaService.dadosEmpresa['nome']?.isNotEmpty == true
+        ? EmpresaService.dadosEmpresa['nome']
+        : 'OrçaFácil Pro';
+
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
         backgroundColor: AppColors.surfaceDark,
         elevation: 0,
         title: Text(
-          BusinessScreen.empresaNome,
+          nomeEmpresa,
           style: const TextStyle(
             color: AppColors.textLight,
             fontWeight: FontWeight.bold,
@@ -173,7 +179,7 @@ class DashboardScreen extends StatelessWidget {
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryBlue.withOpacity(0.1),
+                              color: AppColors.primaryBlue.withAlpha(25),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.schedule, color: AppColors.primaryBlue, size: 20),
@@ -232,7 +238,7 @@ class DashboardScreen extends StatelessWidget {
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.warningOrange.withOpacity(0.1),
+                              color: AppColors.warningOrange.withAlpha(38),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(Icons.description, color: AppColors.warningOrange, size: 20),
@@ -248,7 +254,7 @@ class DashboardScreen extends StatelessWidget {
                           trailing: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.warningOrange.withOpacity(0.15),
+                              color: AppColors.warningOrange.withAlpha(38),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
@@ -270,10 +276,10 @@ class DashboardScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDestaque ? AppColors.primaryBlue.withOpacity(0.1) : AppColors.surfaceDark,
+        color: isDestaque ? AppColors.primaryBlue.withAlpha(25) : AppColors.surfaceDark,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDestaque ? AppColors.primaryBlue.withOpacity(0.5) : AppColors.borderDark,
+          color: isDestaque ? AppColors.primaryBlue.withAlpha(128) : AppColors.borderDark,
           width: isDestaque ? 1.5 : 1.0,
         ),
       ),

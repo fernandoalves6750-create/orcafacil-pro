@@ -14,6 +14,7 @@ class AppointmentsScreen extends StatefulWidget {
 }
 
 class _AppointmentsScreenState extends State<AppointmentsScreen> {
+  DateTime _mesAtual = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _dataSelecionada = DateTime.now();
 
   @override
@@ -35,200 +36,26 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     return "${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}";
   }
 
-  void _adicionarOuEditarCompromisso({Map<String, dynamic>? compromissoExistente, int? index}) {
-    final titleController = TextEditingController(text: compromissoExistente?['title'] ?? '');
-    final horaController = TextEditingController(text: compromissoExistente?['hora'] ?? '09:00');
-    final obsController = TextEditingController(text: compromissoExistente?['observacoes'] ?? '');
-    
-    String? orcamentoVinculadoCliente = compromissoExistente?['cliente'];
-    double? valorVinculado = compromissoExistente?['valor'];
+  void _abrirTelaFormularioCompromisso({Map<String, dynamic>? compromissoExistente, int? index}) async {
+    await StorageService.carregarTudo();
+    if (!mounted) return;
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: AppColors.surfaceDark,
-              title: Text(
-                compromissoExistente == null ? 'Novo Agendamento' : 'Editar Agendamento',
-                style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold),
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(
-                        labelText: 'Título do Compromisso / Serviço',
-                        labelStyle: TextStyle(color: AppColors.textSub),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: horaController,
-                      style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(
-                        labelText: 'Horário (HH:MM)',
-                        labelStyle: TextStyle(color: AppColors.textSub),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Vincular Orçamento (Aprova e gera "A Receber")',
-                      style: TextStyle(color: AppColors.textSub, fontSize: 12),
-                    ),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      value: orcamentoVinculadoCliente,
-                      dropdownColor: AppColors.surfaceDark,
-                      style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(
-                        labelText: 'Selecionar Cliente / Orçamento',
-                        labelStyle: TextStyle(color: AppColors.textSub),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: null,
-                          child: Text('Nenhum (Avulso)', style: TextStyle(color: AppColors.textSub)),
-                        ),
-                        ...BudgetsScreen.listaOrcamentosGlobais.map((orc) {
-                          String label = "${orc['cliente']} - R\$ ${(orc['valor'] as num).toStringAsFixed(2)}";
-                          return DropdownMenuItem<String>(
-                            value: orc['cliente'],
-                            child: Text(label, overflow: TextOverflow.ellipsis),
-                          );
-                        }),
-                      ],
-                      onChanged: (v) {
-                        setDialogState(() {
-                          orcamentoVinculadoCliente = v;
-                          if (v != null) {
-                            final orc = BudgetsScreen.listaOrcamentosGlobais.firstWhere(
-                              (o) => o['cliente'] == v,
-                              orElse: () => {},
-                            );
-                            if (orc.isNotEmpty) {
-                              valorVinculado = (orc['valor'] as num).toDouble();
-                              if (titleController.text.isEmpty) {
-                                titleController.text = 'Serviço para $v';
-                              }
-                            }
-                          } else {
-                            valorVinculado = null;
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: obsController,
-                      style: const TextStyle(color: AppColors.textLight),
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Observações',
-                        labelStyle: TextStyle(color: AppColors.textSub),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar', style: TextStyle(color: AppColors.textSub)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue),
-                  onPressed: () async {
-                    final title = titleController.text.trim();
-                    final hora = horaController.text.trim();
-
-                    if (title.isNotEmpty && hora.isNotEmpty) {
-                      // 1. Atualiza status do orçamento para Aprovado
-                      if (compromissoExistente != null && compromissoExistente['cliente'] != null) {
-                        final antigoCliente = compromissoExistente['cliente'];
-                        if (antigoCliente != orcamentoVinculadoCliente) {
-                          for (var o in BudgetsScreen.listaOrcamentosGlobais) {
-                            if (o['cliente'] == antigoCliente) {
-                              o['status'] = 'Pendente';
-                            }
-                          }
-                        }
-                      }
-
-                      if (orcamentoVinculadoCliente != null) {
-                        for (var o in BudgetsScreen.listaOrcamentosGlobais) {
-                          if (o['cliente'] == orcamentoVinculadoCliente) {
-                            o['status'] = 'Aprovado';
-                          }
-                        }
-                      }
-
-                      final dataStr = compromissoExistente?['data'] ?? _formatarDataParaStr(_dataSelecionada);
-
-                      final novoCompromisso = {
-                        'title': title,
-                        'data': dataStr,
-                        'hora': hora,
-                        'cliente': orcamentoVinculadoCliente ?? '',
-                        'valor': valorVinculado ?? 0.0,
-                        'observacoes': obsController.text.trim(),
-                      };
-
-                      // 2. Lança automaticamente no Financeiro como "Pendente" (A Receber) se houver valor
-                      if (valorVinculado != null && valorVinculado! > 0) {
-                        final registroFinanceiro = {
-                          'descricao': 'Serviço: $title (${orcamentoVinculadoCliente ?? 'Agenda'})',
-                          'valor': valorVinculado!,
-                          'tipo': 'Receita',
-                          'status': 'Pendente',
-                        };
-
-                        if (compromissoExistente == null) {
-                          FinanceScreen.listaFinanceiraGlobal.add(registroFinanceiro);
-                        } else {
-                          // Tenta achar o registro anterior no financeiro para atualizar
-                          int finIndex = FinanceScreen.listaFinanceiraGlobal.indexWhere(
-                            (f) => f['descricao'].toString().contains(compromissoExistente['title']),
-                          );
-                          if (finIndex != -1) {
-                            FinanceScreen.listaFinanceiraGlobal[finIndex] = registroFinanceiro;
-                          } else {
-                            FinanceScreen.listaFinanceiraGlobal.add(registroFinanceiro);
-                          }
-                        }
-                        await StorageService.salvarFinance();
-                      }
-
-                      setState(() {
-                        if (index == null) {
-                          AppointmentsScreen.agendaGlobal.add(novoCompromisso);
-                        } else {
-                          AppointmentsScreen.agendaGlobal[index] = novoCompromisso;
-                        }
-                      });
-
-                      await StorageService.salvarAppointments();
-                      await StorageService.salvarBudgets();
-
-                      if (!context.mounted) return;
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Compromisso agendado e lançado no Financeiro!')),
-                      );
-                    }
-                  },
-                  child: const Text('Salvar', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FormularioCompromissoScreen(
+          compromissoExistente: compromissoExistente,
+          index: index,
+          dataInicialPadrao: _dataSelecionada,
+          onSalvo: (novaData) {
+            setState(() {
+              _dataSelecionada = novaData;
+              _mesAtual = DateTime(novaData.year, novaData.month, 1);
+            });
+            _carregarDados();
           },
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -237,7 +64,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     final clienteVinculado = comp['cliente'];
     final tituloComp = comp['title'];
 
-    // Retorna orçamento para Pendente se houver
     if (clienteVinculado != null && clienteVinculado.toString().isNotEmpty) {
       for (var o in BudgetsScreen.listaOrcamentosGlobais) {
         if (o['cliente'] == clienteVinculado) {
@@ -247,7 +73,6 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       await StorageService.salvarBudgets();
     }
 
-    // Remove do financeiro correspondente
     FinanceScreen.listaFinanceiraGlobal.removeWhere(
       (f) => f['descricao'].toString().contains(tituloComp),
     );
@@ -258,28 +83,42 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     });
 
     await StorageService.salvarAppointments();
+    await StorageService.salvarFinance();
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Compromisso excluído e removido do Financeiro.')),
+      const SnackBar(content: Text('Compromisso excluído e orçamento retornado para Pendente.')),
     );
+  }
+
+  List<DateTime> _gerarDiasDoMes(DateTime mes) {
+    final primeiroDiaMes = DateTime(mes.year, mes.month, 1);
+    int diaSemanaInicio = primeiroDiaMes.weekday - 1;
+    DateTime inicioCalendario = primeiroDiaMes.subtract(Duration(days: diaSemanaInicio));
+    
+    List<DateTime> dias = [];
+    DateTime diaAtual = inicioCalendario;
+    for (int i = 0; i < 42; i++) {
+      dias.add(diaAtual);
+      diaAtual = diaAtual.add(const Duration(days: 1));
+    }
+    return dias;
   }
 
   @override
   Widget build(BuildContext context) {
-    final hoje = DateTime.now();
-    final inicioSemana = hoje.subtract(Duration(days: hoje.weekday - 1));
-    final diasDaSemana = List.generate(7, (index) => inicioSemana.add(Duration(days: index)));
-
     final dataSelecionadaStr = _formatarDataParaStr(_dataSelecionada);
     final compromissosDoDia = AppointmentsScreen.agendaGlobal.where((item) {
       return item['data'] == dataSelecionadaStr;
     }).toList();
 
+    final diasDoMes = _gerarDiasDoMes(_mesAtual);
+    const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Agenda', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+        title: const Text('Agenda Mensal', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.surfaceDark,
         elevation: 0,
         actions: [
@@ -299,52 +138,104 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: AppColors.surfaceDark,
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${nomesMeses[_mesAtual.month - 1]} ${_mesAtual.year}',
+                  style: const TextStyle(color: AppColors.textLight, fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left, color: AppColors.textLight),
+                      onPressed: () {
+                        setState(() {
+                          _mesAtual = DateTime(_mesAtual.year, _mesAtual.month - 1, 1);
+                        });
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right, color: AppColors.textLight),
+                      onPressed: () {
+                        setState(() {
+                          _mesAtual = DateTime(_mesAtual.year, _mesAtual.month + 1, 1);
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            color: AppColors.surfaceDark,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: diasDaSemana.map((dia) {
-                bool selecionado = _formatarDataParaStr(dia) == dataSelecionadaStr;
-                String nomeDia = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][dia.weekday - 1];
+              children: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((d) {
+                return Text(d, style: const TextStyle(color: AppColors.textSub, fontWeight: FontWeight.bold, fontSize: 12));
+              }).toList(),
+            ),
+          ),
+          Container(
+            color: AppColors.surfaceDark,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: diasDoMes.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisExtent: 40,
+              ),
+              itemBuilder: (context, index) {
+                final dia = diasDoMes[index];
+                final diaStr = _formatarDataParaStr(dia);
+                bool isMesAtual = dia.month == _mesAtual.month;
+                bool isSelecionado = _formatarDataParaStr(_dataSelecionada) == diaStr;
+                bool temCompromisso = AppointmentsScreen.agendaGlobal.any((item) => item['data'] == diaStr);
 
                 return GestureDetector(
                   onTap: () {
                     setState(() {
                       _dataSelecionada = dia;
+                      if (!isMesAtual) {
+                        _mesAtual = DateTime(dia.year, dia.month, 1);
+                      }
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    margin: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: selecionado ? AppColors.primaryBlue : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
+                      color: isSelecionado
+                          ? AppColors.primaryBlue
+                          : (temCompromisso ? AppColors.primaryBlue.withAlpha(50) : Colors.transparent),
+                      shape: BoxShape.circle,
+                      border: temCompromisso && !isSelecionado
+                          ? Border.all(color: AppColors.primaryBlue, width: 1)
+                          : null,
                     ),
-                    child: Column(
-                      children: [
-                        Text(
-                          nomeDia,
-                          style: TextStyle(
-                            color: selecionado ? Colors.white : AppColors.textSub,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    child: Center(
+                      child: Text(
+                        dia.day.toString(),
+                        style: TextStyle(
+                          color: isSelecionado
+                              ? Colors.white
+                              : (isMesAtual ? AppColors.textLight : AppColors.textSub.withAlpha(100)),
+                          fontWeight: isSelecionado || temCompromisso ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 13,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          dia.day.toString(),
-                          style: TextStyle(
-                            color: selecionado ? Colors.white : AppColors.textLight,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 );
-              }).toList(),
+              },
             ),
           ),
+          const Divider(color: AppColors.borderDark, height: 1),
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -401,6 +292,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                                 const SizedBox(height: 2),
                                 Text('Valor: R\$ ${(comp['valor'] as num).toStringAsFixed(2)}', style: const TextStyle(color: AppColors.successGreen, fontSize: 13, fontWeight: FontWeight.bold)),
                               ],
+                              if ((comp['observacoes'] ?? '').isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text('Obs: ${comp['observacoes']}', style: const TextStyle(color: AppColors.textSub, fontSize: 12)),
+                              ],
                             ],
                           ),
                           trailing: Row(
@@ -408,7 +303,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit_rounded, color: AppColors.textSub, size: 20),
-                                onPressed: () => _adicionarOuEditarCompromisso(compromissoExistente: comp, index: indiceGlobal),
+                                onPressed: () => _abrirTelaFormularioCompromisso(compromissoExistente: comp, index: indiceGlobal),
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorRed, size: 20),
@@ -426,8 +321,301 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.primaryBlue,
         foregroundColor: Colors.white,
-        onPressed: () => _adicionarOuEditarCompromisso(),
+        onPressed: () => _abrirTelaFormularioCompromisso(),
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+// TELA CHEIA SEPARADA PARA O FORMULÁRIO DE AGENDAMENTO (Garante rolagem e elimina o estouro com o teclado)
+class FormularioCompromissoScreen extends StatefulWidget {
+  final Map<String, dynamic>? compromissoExistente;
+  final int? index;
+  final DateTime dataInicialPadrao;
+  final Function(DateTime) onSalvo;
+
+  const FormularioCompromissoScreen({
+    super.key,
+    this.compromissoExistente,
+    this.index,
+    required this.dataInicialPadrao,
+    required this.onSalvo,
+  });
+
+  @override
+  State<FormularioCompromissoScreen> createState() => _FormularioCompromissoScreenState();
+}
+
+class _FormularioCompromissoScreenState extends State<FormularioCompromissoScreen> {
+  late final TextEditingController titleController;
+  late final TextEditingController horaController;
+  late final TextEditingController obsController;
+  
+  String? orcamentoVinculadoCliente;
+  double? valorVinculado;
+  late DateTime dataCompromissoTemp;
+
+  @override
+  void initState() {
+    super.initState();
+    titleController = TextEditingController(text: widget.compromissoExistente?['title'] ?? '');
+    horaController = TextEditingController(text: widget.compromissoExistente?['hora'] ?? '09:00');
+    obsController = TextEditingController(text: widget.compromissoExistente?['observacoes'] ?? '');
+    
+    orcamentoVinculadoCliente = widget.compromissoExistente?['cliente'];
+    valorVinculado = widget.compromissoExistente?['valor'];
+
+    dataCompromissoTemp = widget.compromissoExistente != null && widget.compromissoExistente!['data'] != null
+        ? DateTime.parse(widget.compromissoExistente!['data'])
+        : widget.dataInicialPadrao;
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    horaController.dispose();
+    obsController.dispose();
+    super.dispose();
+  }
+
+  String _formatarDataParaStr(DateTime data) {
+    return "${data.year}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}";
+  }
+
+  String _formatarDataBr(DateTime data) {
+    return "${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundDark,
+      appBar: AppBar(
+        title: Text(
+          widget.compromissoExistente == null ? 'Novo Agendamento' : 'Editar Agendamento',
+          style: const TextStyle(color: AppColors.textLight),
+        ),
+        backgroundColor: AppColors.surfaceDark,
+        iconTheme: const IconThemeData(color: AppColors.textLight),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: titleController,
+              style: const TextStyle(color: AppColors.textLight),
+              decoration: const InputDecoration(
+                labelText: 'Título do Compromisso / Serviço',
+                labelStyle: TextStyle(color: AppColors.textSub),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: horaController,
+                    style: const TextStyle(color: AppColors.textLight),
+                    decoration: const InputDecoration(
+                      labelText: 'Horário (HH:MM)',
+                      labelStyle: TextStyle(color: AppColors.textSub),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: InkWell(
+                    onTap: () async {
+                      final DateTime? dataEscolhida = await showDatePicker(
+                        context: context,
+                        initialDate: dataCompromissoTemp,
+                        firstDate: DateTime(2023),
+                        lastDate: DateTime(2030),
+                      );
+                      if (dataEscolhida != null) {
+                        setState(() {
+                          dataCompromissoTemp = dataEscolhida;
+                        });
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Data',
+                        labelStyle: TextStyle(color: AppColors.textSub),
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _formatarDataBr(dataCompromissoTemp),
+                            style: const TextStyle(color: AppColors.textLight, fontSize: 13),
+                          ),
+                          const Icon(Icons.calendar_month, color: AppColors.primaryBlue, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Vincular Orçamento (Aprova e gera "A Receber")',
+              style: TextStyle(color: AppColors.textSub, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            DropdownButtonFormField<String>(
+              value: orcamentoVinculadoCliente,
+              dropdownColor: AppColors.surfaceDark,
+              isExpanded: true,
+              style: const TextStyle(color: AppColors.textLight),
+              decoration: const InputDecoration(
+                labelText: 'Selecionar Cliente / Orçamento',
+                labelStyle: TextStyle(color: AppColors.textSub),
+                border: OutlineInputBorder(),
+              ),
+              items: [
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('Nenhum (Avulso)', style: TextStyle(color: AppColors.textSub)),
+                ),
+                ...BudgetsScreen.listaOrcamentosGlobais.where((orc) {
+                  bool isPendente = (orc['status'] ?? 'Pendente') == 'Pendente';
+                  bool isVinculadoAtual = orc['cliente'] == orcamentoVinculadoCliente;
+                  return isPendente || isVinculadoAtual;
+                }).map((orc) {
+                  String label = "${orc['cliente']} - R\$ ${(orc['valor'] as num).toStringAsFixed(2)}";
+                  return DropdownMenuItem<String>(
+                    value: orc['cliente'],
+                    child: Text(label, overflow: TextOverflow.ellipsis),
+                  );
+                }),
+              ],
+              onChanged: (v) {
+                setState(() {
+                  orcamentoVinculadoCliente = v;
+                  if (v != null) {
+                    final orc = BudgetsScreen.listaOrcamentosGlobais.firstWhere(
+                      (o) => o['cliente'] == v,
+                      orElse: () => {},
+                    );
+                    if (orc.isNotEmpty) {
+                      valorVinculado = (orc['valor'] as num).toDouble();
+                      if (titleController.text.isEmpty) {
+                        titleController.text = 'Serviço para $v';
+                      }
+                    }
+                  } else {
+                    valorVinculado = null;
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: obsController,
+              style: const TextStyle(color: AppColors.textLight),
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Observações',
+                labelStyle: TextStyle(color: AppColors.textSub),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              onPressed: () async {
+                final title = titleController.text.trim();
+                final hora = horaController.text.trim();
+
+                if (title.isNotEmpty && hora.isNotEmpty) {
+                  if (widget.compromissoExistente != null && widget.compromissoExistente!['cliente'] != null) {
+                    final antigoCliente = widget.compromissoExistente!['cliente'];
+                    if (antigoCliente != orcamentoVinculadoCliente) {
+                      for (var o in BudgetsScreen.listaOrcamentosGlobais) {
+                        if (o['cliente'] == antigoCliente) {
+                          o['status'] = 'Pendente';
+                        }
+                      }
+                    }
+                  }
+
+                  if (orcamentoVinculadoCliente != null) {
+                    for (var o in BudgetsScreen.listaOrcamentosGlobais) {
+                      if (o['cliente'] == orcamentoVinculadoCliente) {
+                        o['status'] = 'Aprovado';
+                      }
+                    }
+                  }
+
+                  final dataStr = _formatarDataParaStr(dataCompromissoTemp);
+
+                  final novoCompromisso = {
+                    'title': title,
+                    'data': dataStr,
+                    'hora': hora,
+                    'cliente': orcamentoVinculadoCliente ?? '',
+                    'valor': valorVinculado ?? 0.0,
+                    'observacoes': obsController.text.trim(),
+                  };
+
+                  if (valorVinculado != null && valorVinculado! > 0) {
+                    final registroFinanceiro = {
+                      'descricao': 'Serviço: $title (${orcamentoVinculadoCliente ?? 'Agenda'})',
+                      'valor': valorVinculado!,
+                      'tipo': 'Receita',
+                      'status': 'Pendente',
+                    };
+
+                    if (widget.compromissoExistente == null) {
+                      FinanceScreen.listaFinanceiraGlobal.add(registroFinanceiro);
+                    } else {
+                      int finIndex = FinanceScreen.listaFinanceiraGlobal.indexWhere(
+                        (f) => f['descricao'].toString().contains(widget.compromissoExistente!['title']),
+                      );
+                      if (finIndex != -1) {
+                        FinanceScreen.listaFinanceiraGlobal[finIndex] = registroFinanceiro;
+                      } else {
+                        FinanceScreen.listaFinanceiraGlobal.add(registroFinanceiro);
+                      }
+                    }
+                    await StorageService.salvarFinance();
+                  }
+
+                  if (widget.index == null) {
+                    AppointmentsScreen.agendaGlobal.add(novoCompromisso);
+                  } else {
+                    AppointmentsScreen.agendaGlobal[widget.index!] = novoCompromisso;
+                  }
+
+                  await StorageService.salvarAppointments();
+                  await StorageService.salvarBudgets();
+                  await StorageService.salvarFinance();
+
+                  widget.onSalvo(dataCompromissoTemp);
+
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Compromisso salvo com sucesso!')),
+                  );
+                }
+              },
+              child: const Text('Salvar Compromisso', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
       ),
     );
   }
