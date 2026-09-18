@@ -1,18 +1,22 @@
 class ClientModel {
-  final String id;
-  final String name;
-  final String phone;
-  final String whatsapp;
-  final String email;
-  final String city;
-  final String state;
+  String id;
+  String name;
+  String cnpj;
+  String phone;
+  String whatsapp;
+  String email;
+  String address;
+  String city;
+  String state;
 
   ClientModel({
     required this.id,
     required this.name,
+    this.cnpj = '',
     required this.phone,
     required this.whatsapp,
     required this.email,
+    this.address = '',
     required this.city,
     required this.state,
   });
@@ -21,9 +25,11 @@ class ClientModel {
     return {
       'id': id,
       'name': name,
+      'cnpj': cnpj,
       'phone': phone,
       'whatsapp': whatsapp,
       'email': email,
+      'address': address,
       'city': city,
       'state': state,
     };
@@ -33,11 +39,18 @@ class ClientModel {
     return ClientModel(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
+      cnpj: map['cnpj'] ?? '',
       phone: map['phone'] ?? '',
       whatsapp: map['whatsapp'] ?? '',
       email: map['email'] ?? '',
+      address: map['address'] ?? '',
       city: map['city'] ?? '',
       state: map['state'] ?? '',
     );
   }
+
+  // Mantido para compatibilidade caso utilize toJson/fromJson noutros locais
+  Map<String, dynamic> toJson() => toMap();
+
+  factory ClientModel.fromJson(Map<String, dynamic> json) => ClientModel.fromMap(json);
 }

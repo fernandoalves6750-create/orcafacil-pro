@@ -7,6 +7,7 @@ class EmpresaService {
 
   static Map<String, dynamic> dadosEmpresa = {
     'nome': '',
+    'responsavel': '', // <-- Adicionado aqui para guardar o nome do utilizador
     'cnpj': '',
     'contato': '',
     'assinatura': '',

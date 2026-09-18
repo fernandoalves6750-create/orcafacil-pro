@@ -11,6 +11,7 @@ import 'package:orcafacil_pro/screens/budgets/budgets_screen.dart';
 import 'package:orcafacil_pro/screens/products/products_services_screen.dart';
 import 'package:orcafacil_pro/screens/appointments/appointments_screen.dart';
 import 'package:orcafacil_pro/screens/finance/finance_screen.dart';
+import 'package:orcafacil_pro/screens/clients/clients_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -42,6 +43,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Future<void> _atualizarTudo() async {
     await StorageService.carregarTudo();
     await EmpresaService.carregarEmpresa();
+    await ClientService.carregarClientes();
     await _verificarAssinatura();
     if (mounted) setState(() {});
   }
@@ -50,6 +52,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     final List<Widget> screens = [
       const DashboardTab(),
+      const ClientsScreen(),
       const BudgetsScreen(),
       const ProductsServicesScreen(),
       _isTrialExpired ? const PaywallScreen(recurso: 'Agenda de Compromissos') : const AppointmentsScreen(),
@@ -72,6 +75,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         unselectedItemColor: AppColors.textSub,
         items: [
           const BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Início'),
+          const BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Clientes'),
           const BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'Orçamentos'),
           const BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: 'Produtos'),
           BottomNavigationBarItem(
@@ -155,12 +159,12 @@ class _DashboardTabState extends State<DashboardTab> {
   Future<void> _carregarDados() async {
     await StorageService.carregarTudo();
     await EmpresaService.carregarEmpresa();
+    await ClientService.carregarClientes();
     if (mounted) setState(() {});
   }
 
   void _mostrarMenuEmpresa(BuildContext context) async {
     int dias = await SubscriptionService.diasRestantesTrial();
-    bool ativo = await SubscriptionService.isAccessGranted();
 
     if (!context.mounted) return;
 
@@ -283,13 +287,13 @@ class _DashboardTabState extends State<DashboardTab> {
                     TextField(
                       controller: nomeController,
                       style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(labelText: 'Nome da Empresa', labelStyle: TextStyle(color: AppColors.textSub)),
+                      decoration: const InputDecoration(labelText: 'Nome da Empresa / Profissional', labelStyle: TextStyle(color: AppColors.textSub)),
                     ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: cnpjController,
                       style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(labelText: 'CNPJ', labelStyle: TextStyle(color: AppColors.textSub)),
+                      decoration: const InputDecoration(labelText: 'CNPJ / CPF', labelStyle: TextStyle(color: AppColors.textSub)),
                     ),
                     const SizedBox(height: 12),
                     TextField(
@@ -322,6 +326,7 @@ class _DashboardTabState extends State<DashboardTab> {
 
                     await EmpresaService.salvarEmpresa({
                       'nome': nomeController.text.trim(),
+                      'responsavel': EmpresaService.dadosEmpresa['responsavel'] ?? nomeController.text.trim(),
                       'cnpj': cnpjController.text.trim(),
                       'contato': contatoController.text.trim(),
                       'assinatura': EmpresaService.dadosEmpresa['assinatura'],
@@ -336,6 +341,7 @@ class _DashboardTabState extends State<DashboardTab> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Dados e logo da empresa atualizados com sucesso!')),
                     );
+                    setState(() {});
                   },
                   child: const Text('Salvar', style: TextStyle(color: Colors.white)),
                 ),
@@ -512,6 +518,15 @@ class _DashboardTabState extends State<DashboardTab> {
       return (item['status'] ?? 'Pendente') == 'Pendente';
     }).toList();
 
+    String nomeUsuario = '';
+    if (EmpresaService.dadosEmpresa['responsavel']?.isNotEmpty == true) {
+      nomeUsuario = EmpresaService.dadosEmpresa['responsavel'];
+    } else if (EmpresaService.dadosEmpresa['nome']?.isNotEmpty == true) {
+      nomeUsuario = EmpresaService.dadosEmpresa['nome'];
+    }
+
+    final saudacao = nomeUsuario.isNotEmpty ? 'Bom dia, $nomeUsuario!' : 'Bom dia!';
+
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       body: SafeArea(
@@ -523,12 +538,15 @@ class _DashboardTabState extends State<DashboardTab> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Bom dia, Fernando!',
-                    style: TextStyle(
-                      color: AppColors.textLight,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      saudacao,
+                      style: const TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Row(
@@ -861,7 +879,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           contentPadding: EdgeInsets.zero,
                           leading: const Icon(Icons.star, color: AppColors.warningOrange),
                           title: const Text('Recursos Inclusos', style: TextStyle(color: AppColors.textLight)),
-                          subtitle: Text(
+                          subtitle: const Text(
                             'Orçamentos, Produtos, Agenda de Compromissos, Controle Financeiro e Emissão de Recibos em PDF.',
                             style: TextStyle(color: AppColors.textSub, fontSize: 12),
                           ),

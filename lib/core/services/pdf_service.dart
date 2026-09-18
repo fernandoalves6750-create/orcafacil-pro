@@ -13,6 +13,26 @@ class PdfService {
     _fontBoldCache ??= await PdfGoogleFonts.robotoBold();
   }
 
+  // Função auxiliar para converter a data do formato AAAA-MM-DD para DD/MM/AAAA
+  static String _formatarDataBr(String? dataStr) {
+    if (dataStr == null || dataStr.isEmpty) {
+      final agora = DateTime.now();
+      return "${agora.day.toString().padLeft(2, '0')}/${agora.month.toString().padLeft(2, '0')}/${agora.year}";
+    }
+
+    try {
+      final partes = dataStr.split(' ')[0].split('-');
+      if (partes.length == 3) {
+        final ano = partes[0];
+        final mes = partes[1];
+        final dia = partes[2];
+        return "$dia/$mes/$ano";
+      }
+    } catch (_) {}
+
+    return dataStr; // Retorna original caso não consiga converter
+  }
+
   // Geração de PDF de Orçamento
   static Future<Uint8List> gerarPdfOrcamento({
     required Map<String, dynamic> orcamento,
@@ -32,7 +52,10 @@ class PdfService {
 
     final numeroOrcamento = orcamento['numero'] ?? orcamento['id'] ?? '#001';
     final cliente = orcamento['cliente'] ?? 'Cliente não informado';
-    final dataOrcamento = orcamento['data'] ?? DateTime.now().toString().substring(0, 10);
+    
+    // Data formatada para DD/MM/AAAA
+    final dataOrcamento = _formatarDataBr(orcamento['data']);
+    
     final itens = (orcamento['itens'] as List<dynamic>?) ?? [
       {
         'descricao': orcamento['item'] ?? 'Serviço / Produto Geral',
@@ -228,7 +251,10 @@ class PdfService {
     Uint8List? logoBytes = dadosEmpresa?['logoBytes'] ?? StorageService.logoCacheGlobal;
 
     final cliente = orcamento['cliente'] ?? 'Cliente não informado';
-    final dataRecibo = orcamento['data'] ?? DateTime.now().toString().substring(0, 10);
+    
+    // Data formatada para DD/MM/AAAA
+    final dataRecibo = _formatarDataBr(orcamento['data']);
+    
     final descricao = orcamento['item'] ?? orcamento['descricao'] ?? 'Serviço prestado';
     final valor = (orcamento['valor'] as num?)?.toDouble() ?? 0.0;
     final formaPagamento = orcamento['formaPagamento'] ?? 'Pix';

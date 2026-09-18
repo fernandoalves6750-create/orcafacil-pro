@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/empresa_service.dart';
 import '../../core/theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -15,22 +16,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
-  final _nomeController = TextEditingController();
+  final _empresaController = TextEditingController();
+  final _apelidoController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _senhaController.dispose();
-    _nomeController.dispose();
+    _empresaController.dispose();
+    _apelidoController.dispose();
     super.dispose();
   }
 
   void _submeter() async {
     final email = _emailController.text.trim();
     final senha = _senhaController.text.trim();
-    final nome = _nomeController.text.trim();
+    final empresa = _empresaController.text.trim();
+    final apelido = _apelidoController.text.trim();
 
-    if (email.isEmpty || senha.isEmpty || (_isCadastro && nome.isEmpty)) {
+    if (email.isEmpty || senha.isEmpty || (_isCadastro && (empresa.isEmpty || apelido.isEmpty))) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Preencha todos os campos obrigatórios.')),
       );
@@ -40,8 +44,21 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     if (_isCadastro) {
-      bool cadastrado = await AuthService.cadastrarUsuario(email, senha, nome);
+      bool cadastrado = await AuthService.cadastrarUsuario(email, senha, empresa);
+      
+      if (cadastrado) {
+        await EmpresaService.salvarEmpresa({
+          'nome': empresa,
+          'responsavel': apelido,
+          'cnpj': '',
+          'contato': email,
+          'assinatura': EmpresaService.dadosEmpresa['assinatura'],
+          'logoPath': EmpresaService.dadosEmpresa['logoPath'] ?? '',
+        });
+      }
+
       setState(() => _isLoading = false);
+
       if (cadastrado && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Conta cadastrada com sucesso! Faça login.')),
@@ -65,20 +82,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _fazerLoginGoogle() async {
-    setState(() => _isLoading = true);
-    bool sucesso = await AuthService.signInWithGoogle();
-    setState(() => _isLoading = false);
-
-    if (sucesso && mounted) {
-      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível concluir o login com o Google.')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,19 +94,27 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // LOGO DO APLICATIVO AJUSTADO E SEGURO
+                // LOGO DOS ASSETS (assets/logo.png)
                 Center(
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    width: 80,
+                    height: 80,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceDark,
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.primaryBlue, width: 2),
                     ),
-                    child: const Icon(
-                      Icons.account_balance_wallet_rounded,
-                      size: 52,
-                      color: AppColors.primaryBlue,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(40),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 40,
+                          color: AppColors.primaryBlue,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -119,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _isCadastro ? 'Cadastre sua nova conta' : 'Acesse com suas credenciais ou Google',
+                  _isCadastro ? 'Cadastre sua nova conta' : 'Acesse com suas credenciais',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.textSub, fontSize: 13),
                 ),
@@ -127,10 +138,19 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 if (_isCadastro) ...[
                   TextField(
-                    controller: _nomeController,
+                    controller: _empresaController,
                     style: const TextStyle(color: AppColors.textLight),
                     decoration: const InputDecoration(
-                      labelText: 'Nome Completo',
+                      labelText: 'Nome da Empresa',
+                      labelStyle: TextStyle(color: AppColors.textSub),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _apelidoController,
+                    style: const TextStyle(color: AppColors.textLight),
+                    decoration: const InputDecoration(
+                      labelText: 'Como você quer ser chamado?',
                       labelStyle: TextStyle(color: AppColors.textSub),
                     ),
                   ),
@@ -173,30 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               _isCadastro ? 'Cadastrar Conta' : 'Entrar',
                               style: const TextStyle(color: Colors.white, fontSize: 15),
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Row(
-                            children: [
-                              Expanded(child: Divider(color: AppColors.borderDark)),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
-                                child: Text('ou', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
-                              ),
-                              Expanded(child: Divider(color: AppColors.borderDark)),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          // BOTÃO DO GOOGLE BLINDADO (Sem falhas de imagem SVG externa)
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black87,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            onPressed: _fazerLoginGoogle,
-                            icon: const Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
-                            label: const Text('Entrar com o Google', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
                         ],
                       ),

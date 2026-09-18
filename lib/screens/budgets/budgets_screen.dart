@@ -1,11 +1,67 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/services/empresa_service.dart';
 import '../../core/services/pdf_service.dart';
 import '../../core/services/subscription_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../models/client_model.dart';
 import '../products/products_services_screen.dart';
 import 'pdf_preview_screen.dart';
+
+// SERVIÇO DE CLIENTES (Gerencia o banco de dados local com SharedPreferences)
+class ClientService {
+  static const String _keyClientesStorage = 'orcafacil_clientes_storage_v2';
+  static List<ClientModel> listaClientesGlobal = [];
+
+  static Future<void> carregarClientes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dataStr = prefs.getString(_keyClientesStorage);
+      if (dataStr != null) {
+        final decoded = jsonDecode(dataStr) as List;
+        listaClientesGlobal = decoded.map((item) => ClientModel.fromMap(item)).toList();
+      }
+    } catch (e) {
+      debugPrint('Erro ao carregar clientes: $e');
+    }
+  }
+
+  static Future<void> salvarClientes() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = jsonEncode(listaClientesGlobal.map((c) => c.toMap()).toList());
+      await prefs.setString(_keyClientesStorage, encoded);
+    } catch (e) {
+      debugPrint('Erro ao salvar clientes: $e');
+    }
+  }
+
+  // Salva automaticamente ou atualiza caso o cliente já exista pelo nome
+  static Future<void> adicionarOuAtualizarCliente(String nome) async {
+    final nomeTrim = nome.trim();
+    if (nomeTrim.isEmpty) return;
+
+    final index = listaClientesGlobal.indexWhere(
+      (c) => c.name.toLowerCase() == nomeTrim.toLowerCase(),
+    );
+
+    if (index == -1) {
+      final novoCliente = ClientModel(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: nomeTrim,
+        phone: '',
+        whatsapp: '',
+        email: '',
+        city: '',
+        state: '',
+      );
+      listaClientesGlobal.add(novoCliente);
+      await salvarClientes();
+    }
+  }
+}
 
 class BudgetsScreen extends StatefulWidget {
   const BudgetsScreen({super.key});
@@ -26,11 +82,13 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   Future<void> _carregarDados() async {
     await StorageService.carregarTudo();
     await EmpresaService.carregarEmpresa();
+    await ClientService.carregarClientes();
     if (mounted) setState(() {});
   }
 
   void _abrirTelaFormularioOrcamento({Map<String, dynamic>? orcamentoExistente, int? index}) async {
     await StorageService.carregarTudo();
+    await ClientService.carregarClientes();
 
     if (!mounted) return;
     Navigator.push(
@@ -141,7 +199,6 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                             await StorageService.carregarTudo();
                             await EmpresaService.carregarEmpresa();
 
-                            // Trava de segurança para o Recibo após o fim do teste gratuito
                             bool acessoGeral = await SubscriptionService.isAccessGranted();
                             if (value == 'recibo' && !acessoGeral) {
                               if (!context.mounted) return;
@@ -241,7 +298,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 }
 
-// TELA CHEIA SEPARADA PARA ORÇAMENTO (Elimina travamentos do teclado)
+// TELA DE FORMULÁRIO COM AUTOCOMPLETAR E SALVAMENTO AUTOMÁTICO DE CLIENTE
 class FormularioOrcamentoScreen extends StatefulWidget {
   final Map<String, dynamic>? orcamentoExistente;
   final int? index;
@@ -347,10 +404,74 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: clienteController,
-              style: const TextStyle(color: AppColors.textLight),
-              decoration: const InputDecoration(labelText: 'Nome do Cliente', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
+            // CAMPO DE CLIENTE COM AUTOCOMPLETAR EM TEMPO REAL
+            Autocomplete<ClientModel>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text.isEmpty) {
+                  return const Iterable<ClientModel>.empty();
+                }
+                return ClientService.listaClientesGlobal.where((client) {
+                  return client.name.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                });
+              },
+              displayStringForOption: (ClientModel option) => option.name,
+              onSelected: (ClientModel selection) {
+                clienteController.text = selection.name;
+              },
+              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                // Sincroniza o texto caso já venha preenchido (ex: edição)
+                if (clienteController.text.isNotEmpty && controller.text.isEmpty) {
+                  controller.text = clienteController.text;
+                }
+
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: const TextStyle(color: AppColors.textLight),
+                  decoration: const InputDecoration(
+                    labelText: 'Nome do Cliente',
+                    labelStyle: TextStyle(color: AppColors.textSub),
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.person_outline, color: AppColors.primaryBlue),
+                  ),
+                  onChanged: (value) {
+                    clienteController.text = value;
+                  },
+                  onSubmitted: (_) => onFieldSubmitted(),
+                );
+              },
+              optionsViewBuilder: (context, Function(ClientModel) onSelected, Iterable<ClientModel> options) {
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Material(
+                    elevation: 4.0,
+                    color: AppColors.surfaceDark,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width - 32,
+                      constraints: const BoxConstraints(maxHeight: 200),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceDark,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.borderDark),
+                      ),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        itemCount: options.length,
+                        itemBuilder: (context, index) {
+                          final ClientModel option = options.elementAt(index);
+                          return ListTile(
+                            title: Text(option.name, style: const TextStyle(color: AppColors.textLight)),
+                            subtitle: option.phone.isNotEmpty ? Text(option.phone, style: const TextStyle(color: AppColors.textSub, fontSize: 12)) : null,
+                            onTap: () => onSelected(option),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 20),
             const Text('Itens / Produtos / Serviços', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 15)),
@@ -538,6 +659,9 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                 }
 
                 if (cliente.isNotEmpty && itensFinais.isNotEmpty && valorTotal > 0) {
+                  // SALVAMENTO AUTOMÁTICO DO CLIENTE NA BASE DE DADOS
+                  await ClientService.adicionarOuAtualizarCliente(cliente);
+
                   final dataAtual = DateTime.now().toString().substring(0, 10);
                   final numeroSeq = '#${(BudgetsScreen.listaOrcamentosGlobais.length + 1).toString().padLeft(3, '0')}';
 
@@ -565,7 +689,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Orçamento salvo com sucesso!'), backgroundColor: AppColors.surfaceDark),
+                    const SnackBar(content: Text('Orçamento salvo e cliente cadastrado com sucesso!'), backgroundColor: AppColors.surfaceDark),
                   );
                 }
               },

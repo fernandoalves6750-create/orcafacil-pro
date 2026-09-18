@@ -68,10 +68,20 @@ class DashboardScreen extends StatelessWidget {
     final saldoEmCaixa = totalRecebido - totalDespesas;
     final corSaldo = saldoEmCaixa >= 0 ? AppColors.primaryBlue : AppColors.errorRed;
 
-    // Nome da empresa vindo do EmpresaService (com fallback caso esteja vazio)
+    // Nome da empresa vindo do EmpresaService
     final nomeEmpresa = EmpresaService.dadosEmpresa['nome']?.isNotEmpty == true
-        ? EmpresaService.dadosEmpresa['nome']
+        ? EmpresaService.dadosEmpresa['nome']!
         : 'OrçaFácil Pro';
+
+    // Nome do utilizador dinâmico: Procura em 'responsavel', depois em 'nome' e se não encontrar, usa 'Profissional'
+    String nomeUsuario = '';
+    if (EmpresaService.dadosEmpresa['responsavel']?.isNotEmpty == true) {
+      nomeUsuario = EmpresaService.dadosEmpresa['responsavel'];
+    } else if (EmpresaService.dadosEmpresa['nome']?.isNotEmpty == true) {
+      nomeUsuario = EmpresaService.dadosEmpresa['nome'];
+    } else {
+      nomeUsuario = 'Profissional';
+    }
 
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
@@ -111,10 +121,10 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Saudação profissional
-            const Text(
-              'Bom dia, Fernando!',
-              style: TextStyle(
+            // Saudação profissional dinâmica
+            Text(
+              'Bom dia, $nomeUsuario!',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textLight,
