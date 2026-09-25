@@ -4,6 +4,7 @@ import java.io.FileInputStream
 plugins {
     id("com.android.application")
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 val keystoreProperties = Properties()
@@ -22,7 +23,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Configuração correta para compatibilidade no Windows sem excluir as bibliotecas essenciais (.so)
     packaging {
         jniLibs {
             useLegacyPackaging = true

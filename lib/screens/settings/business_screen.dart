@@ -141,7 +141,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('Faça sua assinatura manuscrita abaixo:', style: TextStyle(fontSize: 13, color: AppColors.textSub)),
+                    const Text('FaÃ§a sua assinatura manuscrita abaixo:', style: TextStyle(fontSize: 13, color: AppColors.textSub)),
                     const SizedBox(height: 12),
                     Container(
                       height: 200,
@@ -244,7 +244,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Dica: Insira o nome da sua empresa, CNPJ/CPF e contatos. Estes dados preencherão o cabeçalho dos seus orçamentos e recibos em PDF.',
+                      'Dica: Insira o nome da sua empresa, CNPJ/CPF e contatos. Estes dados preencherÃ£o o cabeÃ§alho dos seus orÃ§amentos e recibos em PDF.',
                       style: TextStyle(color: AppColors.textSub, fontSize: 13, height: 1.3),
                     ),
                   ),
@@ -280,7 +280,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
             const Center(
               child: Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('Toque na câmera para adicionar o logotipo', style: TextStyle(color: AppColors.textSub, fontSize: 11)),
+                child: Text('Toque na cÃ¢mera para adicionar o logotipo', style: TextStyle(color: AppColors.textSub, fontSize: 11)),
               ),
             ),
             const SizedBox(height: 20),
@@ -325,7 +325,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
               style: const TextStyle(color: AppColors.textLight),
               decoration: const InputDecoration(
                 labelText: 'Cargo ou Nome para Assinatura',
-                hintText: 'Ex: Técnico Responsável',
+                hintText: 'Ex: TÃ©cnico ResponsÃ¡vel',
                 hintStyle: TextStyle(color: AppColors.textSub),
                 labelStyle: TextStyle(color: AppColors.textSub),
                 border: OutlineInputBorder(),
@@ -381,7 +381,7 @@ class _BusinessScreenState extends State<BusinessScreen> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50)),
               onPressed: _salvarDados,
-              child: const Text('Salvar Alterações', style: TextStyle(fontSize: 16)),
+              child: const Text('Salvar AlteraÃ§Ãµes', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),

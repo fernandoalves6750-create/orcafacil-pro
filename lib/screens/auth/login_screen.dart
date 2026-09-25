@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/services/empresa_service.dart';
 import '../../core/theme/app_colors.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -11,74 +10,64 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool _isCadastro = false;
   bool _isLoading = false;
+  bool _lembrarDispositivo = true; // OpÃ§Ã£o de lembrar dispositivo ativada por padrÃ£o
 
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
-  final _empresaController = TextEditingController();
-  final _apelidoController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _senhaController.dispose();
-    _empresaController.dispose();
-    _apelidoController.dispose();
     super.dispose();
   }
 
-  void _submeter() async {
+  void _fazerLogin() async {
     final email = _emailController.text.trim();
     final senha = _senhaController.text.trim();
-    final empresa = _empresaController.text.trim();
-    final apelido = _apelidoController.text.trim();
 
-    if (email.isEmpty || senha.isEmpty || (_isCadastro && (empresa.isEmpty || apelido.isEmpty))) {
+    if (email.isEmpty || senha.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preencha todos os campos obrigatórios.')),
+        const SnackBar(content: Text('Preencha o e-mail e a senha.')),
       );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    if (_isCadastro) {
-      bool cadastrado = await AuthService.cadastrarUsuario(email, senha, empresa);
-      
-      if (cadastrado) {
-        await EmpresaService.salvarEmpresa({
-          'nome': empresa,
-          'responsavel': apelido,
-          'cnpj': '',
-          'contato': email,
-          'assinatura': EmpresaService.dadosEmpresa['assinatura'],
-          'logoPath': EmpresaService.dadosEmpresa['logoPath'] ?? '',
-        });
-      }
+    String? erro = await AuthService.fazerLogin(
+      email: email,
+      senha: senha,
+      lembrarDispositivo: _lembrarDispositivo,
+    );
+    
+    setState(() => _isLoading = false);
 
-      setState(() => _isLoading = false);
+    if (erro == null && mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(erro ?? 'E-mail ou senha incorretos. Verifique suas credenciais.')),
+      );
+    }
+  }
 
-      if (cadastrado && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conta cadastrada com sucesso! Faça login.')),
-        );
-        setState(() => _isCadastro = false);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao cadastrar conta.')),
-        );
-      }
-    } else {
-      bool valido = await AuthService.validarLogin(email, senha);
-      setState(() => _isLoading = false);
-      if (valido && mounted) {
-        Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('E-mail ou senha incorretos. Verifique suas credenciais.')),
-        );
-      }
+  void _fazerLoginGoogle() async {
+    setState(() => _isLoading = true);
+
+    String? erro = await AuthService.fazerLoginComGoogle(
+      lembrarDispositivo: _lembrarDispositivo,
+    );
+
+    setState(() => _isLoading = false);
+
+    if (erro == null && mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+    } else if (mounted && erro != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(erro)),
+      );
     }
   }
 
@@ -86,6 +75,11 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: AppColors.textLight),
+      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -94,33 +88,8 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // LOGO DOS ASSETS (assets/logo.png)
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceDark,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primaryBlue, width: 2),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(40),
-                      child: Image.asset(
-                        'assets/logo.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          size: 40,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
                 const Text(
-                  'OrçaFácil PRO',
+                  'OrÃ§aFÃ¡cil PRO',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.textLight,
@@ -129,34 +98,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  _isCadastro ? 'Cadastre sua nova conta' : 'Acesse com suas credenciais',
+                const Text(
+                  'Acesse com suas credenciais',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSub, fontSize: 13),
+                  style: TextStyle(color: AppColors.textSub, fontSize: 13),
                 ),
                 const SizedBox(height: 32),
-
-                if (_isCadastro) ...[
-                  TextField(
-                    controller: _empresaController,
-                    style: const TextStyle(color: AppColors.textLight),
-                    decoration: const InputDecoration(
-                      labelText: 'Nome da Empresa',
-                      labelStyle: TextStyle(color: AppColors.textSub),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _apelidoController,
-                    style: const TextStyle(color: AppColors.textLight),
-                    decoration: const InputDecoration(
-                      labelText: 'Como você quer ser chamado?',
-                      labelStyle: TextStyle(color: AppColors.textSub),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
                 TextField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -176,8 +123,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     labelStyle: TextStyle(color: AppColors.textSub),
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Checkbox para Lembrar este Dispositivo
+                Row(
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _lembrarDispositivo,
+                        activeColor: AppColors.primaryBlue,
+                        side: const BorderSide(color: AppColors.textSub),
+                        onChanged: (value) {
+                          setState(() {
+                            _lembrarDispositivo = value ?? true;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Lembrar este dispositivo',
+                      style: TextStyle(color: AppColors.textSub, fontSize: 14),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 24),
-
                 _isLoading
                     ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
                     : Column(
@@ -187,25 +158,33 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryBlue,
                               padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            onPressed: _submeter,
-                            child: Text(
-                              _isCadastro ? 'Cadastrar Conta' : 'Entrar',
-                              style: const TextStyle(color: Colors.white, fontSize: 15),
+                            onPressed: _fazerLogin,
+                            child: const Text('Entrar', style: TextStyle(color: Colors.white, fontSize: 15)),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.textLight,
+                              side: const BorderSide(color: AppColors.textSub),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
+                            onPressed: _fazerLoginGoogle,
+                            icon: const Icon(Icons.g_mobiledata, size: 28, color: Colors.white),
+                            label: const Text('Entrar com o Google', style: TextStyle(fontSize: 15)),
                           ),
                         ],
                       ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () {
-                    setState(() {
-                      _isCadastro = !_isCadastro;
-                    });
+                    Navigator.pushReplacementNamed(context, '/register');
                   },
-                  child: Text(
-                    _isCadastro ? 'Já tem uma conta? Faça login' : 'Não tem conta? Cadastre-se aqui',
-                    style: const TextStyle(color: AppColors.primaryBlue),
+                  child: const Text(
+                    'NÃ£o tem conta? Cadastre-se aqui',
+                    style: TextStyle(color: AppColors.primaryBlue),
                   ),
                 ),
               ],

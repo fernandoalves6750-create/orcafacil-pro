@@ -13,7 +13,7 @@ class PdfService {
     _fontBoldCache ??= await PdfGoogleFonts.robotoBold();
   }
 
-  // Função auxiliar para converter a data do formato AAAA-MM-DD para DD/MM/AAAA
+  // FunÃ§Ã£o auxiliar para converter a data do formato AAAA-MM-DD para DD/MM/AAAA
   static String _formatarDataBr(String? dataStr) {
     if (dataStr == null || dataStr.isEmpty) {
       final agora = DateTime.now();
@@ -30,10 +30,10 @@ class PdfService {
       }
     } catch (_) {}
 
-    return dataStr; // Retorna original caso não consiga converter
+    return dataStr; // Retorna original caso nÃ£o consiga converter
   }
 
-  // Geração de PDF de Orçamento
+  // GeraÃ§Ã£o de PDF de OrÃ§amento
   static Future<Uint8List> gerarPdfOrcamento({
     required Map<String, dynamic> orcamento,
     Map<String, dynamic>? dadosEmpresa,
@@ -51,14 +51,14 @@ class PdfService {
     Uint8List? logoBytes = dadosEmpresa?['logoBytes'] ?? StorageService.logoCacheGlobal;
 
     final numeroOrcamento = orcamento['numero'] ?? orcamento['id'] ?? '#001';
-    final cliente = orcamento['cliente'] ?? 'Cliente não informado';
+    final cliente = orcamento['cliente'] ?? 'Cliente nÃ£o informado';
     
     // Data formatada para DD/MM/AAAA
     final dataOrcamento = _formatarDataBr(orcamento['data']);
     
     final itens = (orcamento['itens'] as List<dynamic>?) ?? [
       {
-        'descricao': orcamento['item'] ?? 'Serviço / Produto Geral',
+        'descricao': orcamento['item'] ?? 'ServiÃ§o / Produto Geral',
         'quantidade': 1,
         'valorUnitario': orcamento['valor'] ?? 0.0,
       }
@@ -120,7 +120,7 @@ class PdfService {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
-                        pw.Text('ORÇAMENTO', style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.blue800)),
+                        pw.Text('ORÃ‡AMENTO', style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.blue800)),
                         pw.SizedBox(height: 2),
                         pw.Text('$numeroOrcamento', style: pw.TextStyle(font: fontBold, fontSize: 10, color: PdfColors.blue900)),
                       ],
@@ -151,14 +151,14 @@ class PdfService {
                 ],
               ),
               pw.SizedBox(height: 20),
-              pw.Text('ITENS DO ORÇAMENTO', style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.blue800)),
+              pw.Text('ITENS DO ORÃ‡AMENTO', style: pw.TextStyle(font: fontBold, fontSize: 11, color: PdfColors.blue800)),
               pw.SizedBox(height: 6),
               pw.TableHelper.fromTextArray(
                 headerStyle: pw.TextStyle(font: fontBold, fontSize: 9, color: PdfColors.white),
                 headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
                 cellStyle: pw.TextStyle(font: fontRegular, fontSize: 9),
                 cellAlignment: pw.Alignment.centerLeft,
-                headers: ['Descrição / Serviço', 'Qtd', 'Preço Unit. (R\$)', 'Total (R\$)'],
+                headers: ['DescriÃ§Ã£o / ServiÃ§o', 'Qtd', 'PreÃ§o Unit. (R\$)', 'Total (R\$)'],
                 data: itens.map((item) {
                   final qtd = (item['quantidade'] as num?)?.toInt() ?? 1;
                   final unit = (item['valorUnitario'] as num?)?.toDouble() ?? 0.0;
@@ -222,7 +222,7 @@ class PdfService {
 
               pw.Divider(color: PdfColors.grey400, thickness: 0.5),
               pw.Center(
-                child: pw.Text('Orçamento válido por 10 dias.', style: pw.TextStyle(font: fontRegular, fontSize: 8, color: PdfColors.grey600)),
+                child: pw.Text('OrÃ§amento vÃ¡lido por 10 dias.', style: pw.TextStyle(font: fontRegular, fontSize: 8, color: PdfColors.grey600)),
               ),
             ],
           );
@@ -233,7 +233,7 @@ class PdfService {
     return pdf.save();
   }
 
-  // Geração de PDF de Recibo
+  // GeraÃ§Ã£o de PDF de Recibo
   static Future<Uint8List> gerarPdfRecibo({
     required Map<String, dynamic> orcamento,
     Map<String, dynamic>? dadosEmpresa,
@@ -250,12 +250,12 @@ class PdfService {
     
     Uint8List? logoBytes = dadosEmpresa?['logoBytes'] ?? StorageService.logoCacheGlobal;
 
-    final cliente = orcamento['cliente'] ?? 'Cliente não informado';
+    final cliente = orcamento['cliente'] ?? 'Cliente nÃ£o informado';
     
     // Data formatada para DD/MM/AAAA
     final dataRecibo = _formatarDataBr(orcamento['data']);
     
-    final descricao = orcamento['item'] ?? orcamento['descricao'] ?? 'Serviço prestado';
+    final descricao = orcamento['item'] ?? orcamento['descricao'] ?? 'ServiÃ§o prestado';
     final valor = (orcamento['valor'] as num?)?.toDouble() ?? 0.0;
     final formaPagamento = orcamento['formaPagamento'] ?? 'Pix';
 

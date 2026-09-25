@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:orcafacil_pro/core/theme/app_colors.dart';
+import 'package:orcafacil_pro/core/services/auth_service.dart';
 import 'package:orcafacil_pro/core/services/storage_service.dart';
 import 'package:orcafacil_pro/screens/auth/login_screen.dart';
 import 'package:orcafacil_pro/screens/auth/register_screen.dart';
+import 'package:orcafacil_pro/screens/auth/welcome_back_screen.dart';
 import 'package:orcafacil_pro/screens/main_navigation_screen.dart';
+import 'package:orcafacil_pro/screens/privacy_policy_screen.dart'; // <--- 1. Import da Página de Privacidade adicionado
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Carrega todas as listas centralizadas pelo StorageService antes de abrir a interface
+
+  // 1. Inicialização obrigatória do Firebase
+  await Firebase.initializeApp();
+
+  // 2. Carrega a sessão de autenticação (Firebase Auth / SharedPreferences)
+  await AuthService.carregarSessao();
+
+  // 3. Carrega todas as listas isoladas por ID do StorageService antes de abrir a interface
   await StorageService.carregarTudo();
 
   runApp(const OrcaFacilProApp());
@@ -20,10 +30,13 @@ class OrcaFacilProApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Se estiver logado, exibe a tela de bem-vindo de volta; caso contrário, vai para o welcome inicial
+    final String rotaInicial = AuthService.isLoggedIn ? '/welcome_back' : '/welcome';
+
     return MaterialApp(
       title: 'OrçaFácil Pro',
       debugShowCheckedModeBanner: false,
-      
+
       // Configuração rigorosa para o padrão brasileiro (Português / Calendário BR)
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [
@@ -52,12 +65,14 @@ class OrcaFacilProApp extends StatelessWidget {
           centerTitle: false,
         ),
       ),
-      initialRoute: '/welcome',
+      initialRoute: rotaInicial,
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
+        '/welcome_back': (context) => const WelcomeBackScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/main': (context) => const MainNavigationScreen(),
+        '/privacy': (context) => const PrivacyPolicyScreen(), // <--- 2. Rota registada com sucesso
       },
     );
   }

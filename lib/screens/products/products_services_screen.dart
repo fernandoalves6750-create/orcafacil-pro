@@ -51,7 +51,7 @@ class _ProductsServicesScreenState extends State<ProductsServicesScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Produtos & Serviços', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+        title: const Text('Produtos & ServiÃ§os', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.surfaceDark,
         elevation: 0,
         actions: [
@@ -69,7 +69,7 @@ class _ProductsServicesScreenState extends State<ProductsServicesScreen> {
       ),
       body: ProductsServicesScreen.listaProdutosGlobais.isEmpty
           ? const Center(
-              child: Text('Nenhum produto ou serviço cadastrado.', style: TextStyle(color: AppColors.textSub)),
+              child: Text('Nenhum produto ou serviÃ§o cadastrado.', style: TextStyle(color: AppColors.textSub)),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -94,7 +94,7 @@ class _ProductsServicesScreenState extends State<ProductsServicesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 4),
-                        Text('R\$ ${preco.toStringAsFixed(2)} • $tipo', style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
+                        Text('R\$ ${preco.toStringAsFixed(2)} â€¢ $tipo', style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     trailing: Row(
@@ -124,7 +124,7 @@ class _ProductsServicesScreenState extends State<ProductsServicesScreen> {
   }
 }
 
-// TELA CHEIA SEPARADA PARA PRODUTOS/SERVIÇOS
+// TELA CHEIA SEPARADA PARA PRODUTOS/SERVIÃ‡OS
 class FormularioProdutoScreen extends StatefulWidget {
   final Map<String, dynamic>? produtoExistente;
   final int? index;
@@ -173,14 +173,14 @@ class _FormularioProdutoScreenState extends State<FormularioProdutoScreen> {
             TextField(
               controller: nomeController,
               style: const TextStyle(color: AppColors.textLight),
-              decoration: const InputDecoration(labelText: 'Nome do Produto ou Serviço', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: 'Nome do Produto ou ServiÃ§o', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: precoController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               style: const TextStyle(color: AppColors.textLight),
-              decoration: const InputDecoration(labelText: 'Preço (R\$)', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
+              decoration: const InputDecoration(labelText: 'PreÃ§o (R\$)', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
@@ -188,7 +188,7 @@ class _FormularioProdutoScreenState extends State<FormularioProdutoScreen> {
               dropdownColor: AppColors.surfaceDark,
               style: const TextStyle(color: AppColors.textLight),
               decoration: const InputDecoration(labelText: 'Tipo', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-              items: ['Produto', 'Serviço'].map((t) {
+              items: ['Produto', 'ServiÃ§o'].map((t) {
                 return DropdownMenuItem(value: t, child: Text(t));
               }).toList(),
               onChanged: (v) {

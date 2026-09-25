@@ -87,7 +87,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Compromisso excluído e orçamento retornado para Pendente.')),
+      const SnackBar(content: Text('Compromisso excluÃ­do e orÃ§amento retornado para Pendente.')),
     );
   }
 
@@ -113,7 +113,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     }).toList();
 
     final diasDoMes = _gerarDiasDoMes(_mesAtual);
-    const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const nomesMeses = ['Janeiro', 'Fevereiro', 'MarÃ§o', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
@@ -175,7 +175,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((d) {
+              children: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b', 'Dom'].map((d) {
                 return Text(d, style: const TextStyle(color: AppColors.textSub, fontWeight: FontWeight.bold, fontSize: 12));
               }).toList(),
             ),
@@ -328,7 +328,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   }
 }
 
-// TELA CHEIA SEPARADA PARA O FORMULÁRIO DE AGENDAMENTO (Garante rolagem e elimina o estouro com o teclado)
+// TELA CHEIA SEPARADA PARA O FORMULÃRIO DE AGENDAMENTO (Garante rolagem e elimina o estouro com o teclado)
 class FormularioCompromissoScreen extends StatefulWidget {
   final Map<String, dynamic>? compromissoExistente;
   final int? index;
@@ -408,7 +408,7 @@ class _FormularioCompromissoScreenState extends State<FormularioCompromissoScree
               controller: titleController,
               style: const TextStyle(color: AppColors.textLight),
               decoration: const InputDecoration(
-                labelText: 'Título do Compromisso / Serviço',
+                labelText: 'TÃ­tulo do Compromisso / ServiÃ§o',
                 labelStyle: TextStyle(color: AppColors.textSub),
                 border: OutlineInputBorder(),
               ),
@@ -421,7 +421,7 @@ class _FormularioCompromissoScreenState extends State<FormularioCompromissoScree
                     controller: horaController,
                     style: const TextStyle(color: AppColors.textLight),
                     decoration: const InputDecoration(
-                      labelText: 'Horário (HH:MM)',
+                      labelText: 'HorÃ¡rio (HH:MM)',
                       labelStyle: TextStyle(color: AppColors.textSub),
                       border: OutlineInputBorder(),
                     ),
@@ -466,7 +466,7 @@ class _FormularioCompromissoScreenState extends State<FormularioCompromissoScree
             ),
             const SizedBox(height: 20),
             const Text(
-              'Vincular Orçamento (Aprova e gera "A Receber")',
+              'Vincular OrÃ§amento (Aprova e gera "A Receber")',
               style: TextStyle(color: AppColors.textSub, fontSize: 12, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
@@ -476,7 +476,7 @@ class _FormularioCompromissoScreenState extends State<FormularioCompromissoScree
               isExpanded: true,
               style: const TextStyle(color: AppColors.textLight),
               decoration: const InputDecoration(
-                labelText: 'Selecionar Cliente / Orçamento',
+                labelText: 'Selecionar Cliente / OrÃ§amento',
                 labelStyle: TextStyle(color: AppColors.textSub),
                 border: OutlineInputBorder(),
               ),
@@ -508,7 +508,7 @@ class _FormularioCompromissoScreenState extends State<FormularioCompromissoScree
                     if (orc.isNotEmpty) {
                       valorVinculado = (orc['valor'] as num).toDouble();
                       if (titleController.text.isEmpty) {
-                        titleController.text = 'Serviço para $v';
+                        titleController.text = 'ServiÃ§o para $v';
                       }
                     }
                   } else {
@@ -523,7 +523,7 @@ class _FormularioCompromissoScreenState extends State<FormularioCompromissoScree
               style: const TextStyle(color: AppColors.textLight),
               maxLines: 3,
               decoration: const InputDecoration(
-                labelText: 'Observações',
+                labelText: 'ObservaÃ§Ãµes',
                 labelStyle: TextStyle(color: AppColors.textSub),
                 border: OutlineInputBorder(),
               ),
@@ -572,7 +572,7 @@ class _FormularioCompromissoScreenState extends State<FormularioCompromissoScree
 
                   if (valorVinculado != null && valorVinculado! > 0) {
                     final registroFinanceiro = {
-                      'descricao': 'Serviço: $title (${orcamentoVinculadoCliente ?? 'Agenda'})',
+                      'descricao': 'ServiÃ§o: $title (${orcamentoVinculadoCliente ?? 'Agenda'})',
                       'valor': valorVinculado!,
                       'tipo': 'Receita',
                       'status': 'Pendente',

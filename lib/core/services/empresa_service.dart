@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'auth_service.dart';
 
 class EmpresaService {
-  static const String _keyEmpresaData = 'empresa_dados_storage_key_v2';
+  static const String _baseKeyEmpresaData = 'empresa_dados_storage_key_v2';
 
   static Map<String, dynamic> dadosEmpresa = {
     'nome': '',
@@ -14,13 +15,37 @@ class EmpresaService {
     'logoPath': '',
   };
 
+  /// Retorna a chave personalizada com o UID do utilizador atual para isolamento perfeito
+  static String _getPrefKey() {
+    final uid = AuthService.currentUid ?? 'global';
+    return '${_baseKeyEmpresaData}_$uid';
+  }
+
   static Future<void> carregarEmpresa() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final dataStr = prefs.getString(_keyEmpresaData);
+      final dataStr = prefs.getString(_getPrefKey());
       if (dataStr != null) {
         final decoded = Map<String, dynamic>.from(jsonDecode(dataStr));
-        dadosEmpresa = {...dadosEmpresa, ...decoded};
+        dadosEmpresa = {
+          'nome': '',
+          'responsavel': '',
+          'cnpj': '',
+          'contato': '',
+          'assinatura': '',
+          'logoPath': '',
+          ...decoded,
+        };
+      } else {
+        // Reseta para os valores vazios padrÃ£o se nÃ£o houver dados para este UID
+        dadosEmpresa = {
+          'nome': '',
+          'responsavel': '',
+          'cnpj': '',
+          'contato': '',
+          'assinatura': '',
+          'logoPath': '',
+        };
       }
     } catch (e) {
       debugPrint('Erro ao carregar dados da empresa: $e');
@@ -31,7 +56,7 @@ class EmpresaService {
     try {
       dadosEmpresa = {...dadosEmpresa, ...novosDados};
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyEmpresaData, jsonEncode(dadosEmpresa));
+      await prefs.setString(_getPrefKey(), jsonEncode(dadosEmpresa));
     } catch (e) {
       debugPrint('Erro ao salvar dados da empresa: $e');
     }

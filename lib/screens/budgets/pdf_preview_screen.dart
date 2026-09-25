@@ -24,7 +24,7 @@ class PdfPreviewScreen extends StatelessWidget {
         backgroundColor: AppColors.surfaceDark,
         iconTheme: const IconThemeData(color: AppColors.textLight),
         actions: [
-          // Botão de compartilhamento direto (WhatsApp / Outros apps)
+          // BotÃ£o de compartilhamento direto (WhatsApp / Outros apps)
           IconButton(
             icon: const Icon(Icons.share_rounded, color: AppColors.primaryBlue),
             tooltip: 'Compartilhar / Enviar no WhatsApp',
@@ -37,7 +37,7 @@ class PdfPreviewScreen extends StatelessWidget {
           ),
         ],
       ),
-      // Exibe a pré-visualização interativa na tela com ferramentas de impressão e compartilhamento
+      // Exibe a prÃ©-visualizaÃ§Ã£o interativa na tela com ferramentas de impressÃ£o e compartilhamento
       body: PdfPreview(
         build: (format) async => pdfBytes,
         allowPrinting: true,
@@ -46,7 +46,7 @@ class PdfPreviewScreen extends StatelessWidget {
         canChangePageFormat: false,
         pdfFileName: nomeArquivo,
         actions: [
-          // Botão personalizado na barra inferior do preview para WhatsApp/Compartilhar
+          // BotÃ£o personalizado na barra inferior do preview para WhatsApp/Compartilhar
           PdfPreviewAction(
             icon: const Icon(Icons.share, color: Colors.white),
             onPressed: (context, build, pageFormat) async {

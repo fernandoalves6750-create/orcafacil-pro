@@ -52,7 +52,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     final List<Widget> screens = [
       const DashboardTab(),
-      const ClientsScreen(),
+      const ClientFormScreen(),
       const BudgetsScreen(),
       const ProductsServicesScreen(),
       _isTrialExpired ? const PaywallScreen(recurso: 'Agenda de Compromissos') : const AppointmentsScreen(),
@@ -74,9 +74,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         selectedItemColor: AppColors.primaryBlue,
         unselectedItemColor: AppColors.textSub,
         items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Início'),
+          const BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'InÃ­cio'),
           const BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Clientes'),
-          const BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'Orçamentos'),
+          const BottomNavigationBarItem(icon: Icon(Icons.description_outlined), label: 'OrÃ§amentos'),
           const BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: 'Produtos'),
           BottomNavigationBarItem(
             icon: Icon(_isTrialExpired ? Icons.lock_outline : Icons.calendar_today_outlined),
@@ -109,13 +109,13 @@ class PaywallScreen extends StatelessWidget {
               const Icon(Icons.lock_rounded, size: 70, color: AppColors.warningOrange),
               const SizedBox(height: 20),
               const Text(
-                'Período de Teste Encerrado',
+                'PerÃ­odo de Teste Encerrado',
                 style: TextStyle(color: AppColors.textLight, fontSize: 22, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
               Text(
-                'O acesso ao recurso "$recurso" requer a assinatura do OrçaFácil Pro.\n\nAssine o plano mensal por R\$ 5,99 para desbloquear a agenda, o financeiro e a emissão de recibos!',
+                'O acesso ao recurso "$recurso" requer a assinatura do OrÃ§aFÃ¡cil Pro.\n\nAssine o plano mensal por R\$ 5,99 para desbloquear a agenda, o financeiro e a emissÃ£o de recibos!',
                 style: const TextStyle(color: AppColors.textSub, fontSize: 14, height: 1.4),
                 textAlign: TextAlign.center,
               ),
@@ -182,7 +182,7 @@ class _DashboardTabState extends State<DashboardTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Gestão da Empresa',
+                'GestÃ£o da Empresa',
                 style: TextStyle(color: AppColors.textLight, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
@@ -198,7 +198,7 @@ class _DashboardTabState extends State<DashboardTab> {
               const Divider(color: AppColors.borderDark),
               ListTile(
                 leading: const Icon(Icons.verified, color: AppColors.successGreen),
-                title: const Text('Gerar Assinatura Eletrônica', style: TextStyle(color: AppColors.textLight)),
+                title: const Text('Gerar Assinatura EletrÃ´nica', style: TextStyle(color: AppColors.textLight)),
                 subtitle: const Text('Configurar carimbo/assinatura digital nos documentos', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
                 onTap: () {
                   Navigator.pop(context);
@@ -210,7 +210,7 @@ class _DashboardTabState extends State<DashboardTab> {
                 leading: const Icon(Icons.card_membership_rounded, color: AppColors.warningOrange),
                 title: const Text('Plano e Assinatura (Pro)', style: TextStyle(color: AppColors.textLight)),
                 subtitle: Text(
-                  dias > 0 ? 'Período de Teste Gratuito: Restam $dias dias' : 'Plano Mensal (R\$ 5,99 / mês)',
+                  dias > 0 ? 'PerÃ­odo de Teste Gratuito: Restam $dias dias' : 'Plano Mensal (R\$ 5,99 / mÃªs)',
                   style: const TextStyle(color: AppColors.textSub, fontSize: 12),
                 ),
                 onTap: () {
@@ -377,7 +377,7 @@ class _DashboardTabState extends State<DashboardTab> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('Desenhe sua assinatura no espaço abaixo:', style: TextStyle(fontSize: 13, color: AppColors.textSub)),
+                    const Text('Desenhe sua assinatura no espaÃ§o abaixo:', style: TextStyle(fontSize: 13, color: AppColors.textSub)),
                     const SizedBox(height: 12),
                     Container(
                       height: 200,
@@ -471,7 +471,7 @@ class _DashboardTabState extends State<DashboardTab> {
                     if (!context.mounted) return;
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Assinatura eletrônica desenhada e salva com sucesso!')),
+                      const SnackBar(content: Text('Assinatura eletrÃ´nica desenhada e salva com sucesso!')),
                     );
                   },
                   child: const Text('Salvar Assinatura'),
@@ -632,12 +632,12 @@ class _DashboardTabState extends State<DashboardTab> {
                     ),
               const SizedBox(height: 24),
               const Text(
-                'Orçamentos Pendentes',
+                'OrÃ§amentos Pendentes',
                 style: TextStyle(color: AppColors.textLight, fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               orcamentosPendentes.isEmpty
-                  ? _buildCardMensagemVazia('Nenhum orçamento pendente no momento.')
+                  ? _buildCardMensagemVazia('Nenhum orÃ§amento pendente no momento.')
                   : ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -791,7 +791,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Parabéns! Assinatura mensal ativada com sucesso por 30 dias.'),
+        content: Text('ParabÃ©ns! Assinatura mensal ativada com sucesso por 30 dias.'),
         backgroundColor: AppColors.successGreen,
       ),
     );
@@ -832,14 +832,14 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          _isAtivo ? 'OrçaFácil Pro Ativo' : 'Período de Teste Expirado',
+                          _isAtivo ? 'OrÃ§aFÃ¡cil Pro Ativo' : 'PerÃ­odo de Teste Expirado',
                           style: const TextStyle(color: AppColors.textLight, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           _isAtivo
-                              ? 'Você possui acesso total a todos os recursos do aplicativo.'
-                              : 'Assine o plano mensal para desbloquear a Agenda, Financeiro e Emissão de Recibos.',
+                              ? 'VocÃª possui acesso total a todos os recursos do aplicativo.'
+                              : 'Assine o plano mensal para desbloquear a Agenda, Financeiro e EmissÃ£o de Recibos.',
                           style: const TextStyle(color: AppColors.textSub, fontSize: 13, height: 1.3),
                           textAlign: TextAlign.center,
                         ),
@@ -872,7 +872,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(Icons.check_circle, color: AppColors.successGreen),
                           title: Text('Plano Mensal Pro', style: TextStyle(color: AppColors.textLight)),
-                          subtitle: Text('R\$ 5,99 / mês (Cancele quando quiser)', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
+                          subtitle: Text('R\$ 5,99 / mÃªs (Cancele quando quiser)', style: TextStyle(color: AppColors.textSub, fontSize: 12)),
                         ),
                         const Divider(color: AppColors.borderDark),
                         ListTile(
@@ -880,7 +880,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                           leading: const Icon(Icons.star, color: AppColors.warningOrange),
                           title: const Text('Recursos Inclusos', style: TextStyle(color: AppColors.textLight)),
                           subtitle: const Text(
-                            'Orçamentos, Produtos, Agenda de Compromissos, Controle Financeiro e Emissão de Recibos em PDF.',
+                            'OrÃ§amentos, Produtos, Agenda de Compromissos, Controle Financeiro e EmissÃ£o de Recibos em PDF.',
                             style: TextStyle(color: AppColors.textSub, fontSize: 12),
                           ),
                         ),
@@ -896,7 +896,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: _simularAssinatura,
-                    child: const Text('Assinar por R\$ 5,99 / mês', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: const Text('Assinar por R\$ 5,99 / mÃªs', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),

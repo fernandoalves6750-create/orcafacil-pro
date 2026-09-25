@@ -8,7 +8,7 @@ class AppColors {
   static const Color warningOrange = Color(0xFFFFB74D);
   static const Color errorRed = Color(0xFFE53935);
 
-  // Padrão Cinza Elegante para o Modo Escuro
+  // PadrÃ£o Cinza Elegante para o Modo Escuro
   static const Color backgroundDark = Color(0xFF12161F);
   static const Color surfaceDark = Color(0xFF1E2530);
   static const Color borderDark = Color(0xFF2C3545);
@@ -21,5 +21,5 @@ class AppColors {
   static const Color textLight = Color(0xFFFFFFFF);
   static const Color textSub = Color(0xFFB0BEC5);
   static const Color textDark = Color(0xFF212121);
-  static const Color textMedium = Color(0xFF90A4AE); // Ajustado para cinza claro legível no escuro
+  static const Color textMedium = Color(0xFF90A4AE); // Ajustado para cinza claro legÃ­vel no escuro
 }

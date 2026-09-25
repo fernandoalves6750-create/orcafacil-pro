@@ -9,7 +9,7 @@ import '../settings/business_screen.dart';
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  // Função para confirmar e executar o Logout
+  // FunÃ§Ã£o para confirmar e executar o Logout
   void _confirmarLogout(BuildContext context) {
     showDialog(
       context: context,
@@ -17,11 +17,11 @@ class DashboardScreen extends StatelessWidget {
         return AlertDialog(
           backgroundColor: AppColors.surfaceDark,
           title: const Text(
-            'Encerrar Sessão',
+            'Encerrar SessÃ£o',
             style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold),
           ),
           content: const Text(
-            'Deseja realmente sair do OrçaFácil Pro?',
+            'Deseja realmente sair do OrÃ§aFÃ¡cil Pro?',
             style: TextStyle(color: AppColors.textSub),
           ),
           actions: [
@@ -35,8 +35,8 @@ class DashboardScreen extends StatelessWidget {
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                Navigator.pop(context); // Fecha o diálogo
-                // Encerra a sessão e retorna para a tela de boas-vindas limpando o histórico
+                Navigator.pop(context); // Fecha o diÃ¡logo
+                // Encerra a sessÃ£o e retorna para a tela de boas-vindas limpando o histÃ³rico
                 Navigator.pushNamedAndRemoveUntil(context, '/welcome', (route) => false);
               },
               child: const Text('Sair'),
@@ -52,7 +52,7 @@ class DashboardScreen extends StatelessWidget {
     final orcamentosPendentes = BudgetsScreen.listaOrcamentosGlobais.where((b) => b['status'] == 'Pendente').toList();
     final agendaHoje = AppointmentsScreen.agendaGlobal;
 
-    // Cálculos financeiros idênticos ao Financeiro
+    // CÃ¡lculos financeiros idÃªnticos ao Financeiro
     final totalAReceber = FinanceScreen.listaFinanceiraGlobal
         .where((t) => t['tipo'] == 'Receita' && t['status'] == 'Pendente')
         .fold(0.0, (s, i) => s + (i['valor'] as double));
@@ -71,9 +71,9 @@ class DashboardScreen extends StatelessWidget {
     // Nome da empresa vindo do EmpresaService
     final nomeEmpresa = EmpresaService.dadosEmpresa['nome']?.isNotEmpty == true
         ? EmpresaService.dadosEmpresa['nome']!
-        : 'OrçaFácil Pro';
+        : 'OrÃ§aFÃ¡cil Pro';
 
-    // Nome do utilizador dinâmico: Procura em 'responsavel', depois em 'nome' e se não encontrar, usa 'Profissional'
+    // Nome do utilizador dinÃ¢mico: Procura em 'responsavel', depois em 'nome' e se nÃ£o encontrar, usa 'Profissional'
     String nomeUsuario = '';
     if (EmpresaService.dadosEmpresa['responsavel']?.isNotEmpty == true) {
       nomeUsuario = EmpresaService.dadosEmpresa['responsavel'];
@@ -97,7 +97,7 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         actions: [
-          // Botão de Configurar Empresa
+          // BotÃ£o de Configurar Empresa
           IconButton(
             icon: const Icon(Icons.business_rounded, color: AppColors.primaryBlue),
             tooltip: 'Configurar Empresa, Logo e Assinatura',
@@ -108,7 +108,7 @@ class DashboardScreen extends StatelessWidget {
               );
             },
           ),
-          // Botão de Logout posicionado logo ao lado
+          // BotÃ£o de Logout posicionado logo ao lado
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: AppColors.errorRed),
             tooltip: 'Sair do Aplicativo',
@@ -121,7 +121,7 @@ class DashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Saudação profissional dinâmica
+            // SaudaÃ§Ã£o profissional dinÃ¢mica
             Text(
               'Bom dia, $nomeUsuario!',
               style: const TextStyle(
@@ -150,7 +150,7 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
             
-            // Seção: Agenda do Dia
+            // SeÃ§Ã£o: Agenda do Dia
             const Text(
               'Agenda do Dia',
               style: TextStyle(
@@ -199,7 +199,7 @@ class DashboardScreen extends StatelessWidget {
                             style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           subtitle: Text(
-                            'Horário: ${ag['hora']}',
+                            'HorÃ¡rio: ${ag['hora']}',
                             style: const TextStyle(color: AppColors.textSub, fontSize: 12),
                           ),
                         ),
@@ -209,9 +209,9 @@ class DashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
             
-            // Seção: Orçamentos Pendentes
+            // SeÃ§Ã£o: OrÃ§amentos Pendentes
             const Text(
-              'Orçamentos Pendentes',
+              'OrÃ§amentos Pendentes',
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
@@ -230,7 +230,7 @@ class DashboardScreen extends StatelessWidget {
                     ),
                     child: const Center(
                       child: Text(
-                        'Nenhum orçamento pendente no momento.',
+                        'Nenhum orÃ§amento pendente no momento.',
                         style: TextStyle(color: AppColors.textSub, fontSize: 13),
                       ),
                     ),
@@ -258,7 +258,7 @@ class DashboardScreen extends StatelessWidget {
                             style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 14),
                           ),
                           subtitle: Text(
-                            '${orc['item']} • R\$ ${(orc['valor'] as double).toStringAsFixed(2)}',
+                            '${orc['item']} â€¢ R\$ ${(orc['valor'] as double).toStringAsFixed(2)}',
                             style: const TextStyle(color: AppColors.textSub, fontSize: 12),
                           ),
                           trailing: Container(

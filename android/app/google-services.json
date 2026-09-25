@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "106260249842",
+    "project_id": "orcafacilpro-2a134",
+    "storage_bucket": "orcafacilpro-2a134.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:106260249842:android:c0754d22a332e1f7af246b",
+        "android_client_info": {
+          "package_name": "com.fernando.orcafacil.orcafacil_pro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGVxQzF9BxFD-64LkoLMnJPwUS5hXVMUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

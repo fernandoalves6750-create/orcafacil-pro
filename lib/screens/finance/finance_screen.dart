@@ -129,7 +129,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
-              'Histórico de Lançamentos',
+              'HistÃ³rico de LanÃ§amentos',
               style: TextStyle(color: AppColors.textSub, fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
@@ -142,12 +142,12 @@ class _FinanceScreenState extends State<FinanceScreen> {
                         Icon(Icons.account_balance_wallet_outlined, size: 64, color: AppColors.textSub),
                         SizedBox(height: 16),
                         Text(
-                          'Nenhum lançamento financeiro.',
+                          'Nenhum lanÃ§amento financeiro.',
                           style: TextStyle(color: AppColors.textLight, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Aprove orçamentos ou adicione gastos no botão +.',
+                          'Aprove orÃ§amentos ou adicione gastos no botÃ£o +.',
                           style: TextStyle(color: AppColors.textSub, fontSize: 13),
                           textAlign: TextAlign.center,
                         ),
@@ -186,7 +186,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
                                 ),
                           title: Text(tr['descricao'], style: const TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
                           subtitle: Text(
-                            '${tr['tipo']} ($status) • R\$ ${(tr['valor'] as num).toStringAsFixed(2)}',
+                            '${tr['tipo']} ($status) â€¢ R\$ ${(tr['valor'] as num).toStringAsFixed(2)}',
                             style: TextStyle(color: isRecebido ? AppColors.successGreen : (isReceita ? AppColors.warningOrange : AppColors.errorRed)),
                           ),
                           trailing: Row(
@@ -254,7 +254,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
   }
 }
 
-// TELA CHEIA SEPARADA PARA TRANSAÇÃO FINANCEIRA (Elimina travamentos e estouros com o teclado)
+// TELA CHEIA SEPARADA PARA TRANSAÃ‡ÃƒO FINANCEIRA (Elimina travamentos e estouros com o teclado)
 class FormularioTransacaoScreen extends StatefulWidget {
   final Map<String, dynamic>? transacaoExistente;
   final int? index;
@@ -293,7 +293,7 @@ class _FormularioTransacaoScreenState extends State<FormularioTransacaoScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: Text(widget.transacaoExistente == null ? 'Nova Transação' : 'Editar Transação', style: const TextStyle(color: AppColors.textLight)),
+        title: Text(widget.transacaoExistente == null ? 'Nova TransaÃ§Ã£o' : 'Editar TransaÃ§Ã£o', style: const TextStyle(color: AppColors.textLight)),
         backgroundColor: AppColors.surfaceDark,
         iconTheme: const IconThemeData(color: AppColors.textLight),
       ),
@@ -306,7 +306,7 @@ class _FormularioTransacaoScreenState extends State<FormularioTransacaoScreen> {
               controller: descricaoController,
               style: const TextStyle(color: AppColors.textLight),
               decoration: const InputDecoration(
-                labelText: 'Descrição',
+                labelText: 'DescriÃ§Ã£o',
                 labelStyle: TextStyle(color: AppColors.textSub),
                 border: OutlineInputBorder(),
               ),
@@ -389,11 +389,11 @@ class _FormularioTransacaoScreenState extends State<FormularioTransacaoScreen> {
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Transação salva com sucesso!'), backgroundColor: AppColors.surfaceDark),
+                    const SnackBar(content: Text('TransaÃ§Ã£o salva com sucesso!'), backgroundColor: AppColors.surfaceDark),
                   );
                 }
               },
-              child: const Text('Salvar Transação', style: TextStyle(fontSize: 16)),
+              child: const Text('Salvar TransaÃ§Ã£o', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),

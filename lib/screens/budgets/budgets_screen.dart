@@ -10,7 +10,7 @@ import '../../models/client_model.dart';
 import '../products/products_services_screen.dart';
 import 'pdf_preview_screen.dart';
 
-// SERVIÇO DE CLIENTES (Gerencia o banco de dados local com SharedPreferences)
+// SERVIÃ‡O DE CLIENTES (Gerencia o banco de dados local com SharedPreferences)
 class ClientService {
   static const String _keyClientesStorage = 'orcafacil_clientes_storage_v2';
   static List<ClientModel> listaClientesGlobal = [];
@@ -38,7 +38,7 @@ class ClientService {
     }
   }
 
-  // Salva automaticamente ou atualiza caso o cliente já exista pelo nome
+  // Salva automaticamente ou atualiza caso o cliente jÃ¡ exista pelo nome
   static Future<void> adicionarOuAtualizarCliente(String nome) async {
     final nomeTrim = nome.trim();
     if (nomeTrim.isEmpty) return;
@@ -114,7 +114,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     switch (status) {
       case 'Aprovado':
         return AppColors.successGreen;
-      case 'Concluído':
+      case 'ConcluÃ­do':
         return AppColors.primaryBlue;
       case 'Cancelado':
         return AppColors.errorRed;
@@ -128,7 +128,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: const Text('Orçamentos', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
+        title: const Text('OrÃ§amentos', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.surfaceDark,
         elevation: 0,
         actions: [
@@ -146,7 +146,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
       ),
       body: BudgetsScreen.listaOrcamentosGlobais.isEmpty
           ? const Center(
-              child: Text('Nenhum orçamento cadastrado.', style: TextStyle(color: AppColors.textSub)),
+              child: Text('Nenhum orÃ§amento cadastrado.', style: TextStyle(color: AppColors.textSub)),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -176,7 +176,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                           runSpacing: 4,
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Text('R\$ ${(orc['valor'] as num).toStringAsFixed(2)} • ${orc['formaPagamento'] ?? 'Pix'}', style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
+                            Text('R\$ ${(orc['valor'] as num).toStringAsFixed(2)} â€¢ ${orc['formaPagamento'] ?? 'Pix'}', style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13)),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -206,9 +206,9 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                 context: context,
                                 builder: (context) => AlertDialog(
                                   backgroundColor: AppColors.surfaceDark,
-                                  title: const Text('Recurso da Versão Pro', style: TextStyle(color: AppColors.textLight)),
+                                  title: const Text('Recurso da VersÃ£o Pro', style: TextStyle(color: AppColors.textLight)),
                                   content: const Text(
-                                    'A emissão de recibos está disponível apenas na versão completa do aplicativo após o período de teste de 7 dias.',
+                                    'A emissÃ£o de recibos estÃ¡ disponÃ­vel apenas na versÃ£o completa do aplicativo apÃ³s o perÃ­odo de teste de 7 dias.',
                                     style: TextStyle(color: AppColors.textSub),
                                   ),
                                   actions: [
@@ -241,7 +241,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   builder: (context) => PdfPreviewScreen(
                                     pdfBytes: pdfBytes,
                                     nomeArquivo: 'Orcamento_${orc['cliente']}.pdf',
-                                    titulo: 'Pré-visualização do Orçamento',
+                                    titulo: 'PrÃ©-visualizaÃ§Ã£o do OrÃ§amento',
                                   ),
                                 ),
                               );
@@ -257,7 +257,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                                   builder: (context) => PdfPreviewScreen(
                                     pdfBytes: pdfBytes,
                                     nomeArquivo: 'Recibo_${orc['cliente']}.pdf',
-                                    titulo: 'Pré-visualização do Recibo',
+                                    titulo: 'PrÃ©-visualizaÃ§Ã£o do Recibo',
                                   ),
                                 ),
                               );
@@ -266,7 +266,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
                           itemBuilder: (context) => [
                             const PopupMenuItem(
                               value: 'orcamento',
-                              child: Text('Gerar Orçamento (PDF)', style: TextStyle(color: AppColors.textLight)),
+                              child: Text('Gerar OrÃ§amento (PDF)', style: TextStyle(color: AppColors.textLight)),
                             ),
                             const PopupMenuItem(
                               value: 'recibo',
@@ -298,7 +298,7 @@ class _BudgetsScreenState extends State<BudgetsScreen> {
   }
 }
 
-// TELA DE FORMULÁRIO COM AUTOCOMPLETAR E SALVAMENTO AUTOMÁTICO DE CLIENTE
+// TELA DE FORMULÃRIO COM AUTOCOMPLETAR E SALVAMENTO AUTOMÃTICO DE CLIENTE
 class FormularioOrcamentoScreen extends StatefulWidget {
   final Map<String, dynamic>? orcamentoExistente;
   final int? index;
@@ -377,7 +377,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
   }
 
   String itensOrcamentoResumo(List<Map<String, dynamic>> itens) {
-    if (itens.isEmpty) return 'Orçamento Geral';
+    if (itens.isEmpty) return 'OrÃ§amento Geral';
     return itens.map((i) => "${i['quantidade']}x ${i['descricao']}").join(', ');
   }
 
@@ -395,7 +395,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundDark,
       appBar: AppBar(
-        title: Text(widget.orcamentoExistente == null ? 'Novo Orçamento' : 'Editar Orçamento', style: const TextStyle(color: AppColors.textLight)),
+        title: Text(widget.orcamentoExistente == null ? 'Novo OrÃ§amento' : 'Editar OrÃ§amento', style: const TextStyle(color: AppColors.textLight)),
         backgroundColor: AppColors.surfaceDark,
         iconTheme: const IconThemeData(color: AppColors.textLight),
       ),
@@ -419,7 +419,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                 clienteController.text = selection.name;
               },
               fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                // Sincroniza o texto caso já venha preenchido (ex: edição)
+                // Sincroniza o texto caso jÃ¡ venha preenchido (ex: ediÃ§Ã£o)
                 if (clienteController.text.isNotEmpty && controller.text.isEmpty) {
                   controller.text = clienteController.text;
                 }
@@ -474,7 +474,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
               },
             ),
             const SizedBox(height: 20),
-            const Text('Itens / Produtos / Serviços', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 15)),
+            const Text('Itens / Produtos / ServiÃ§os', style: TextStyle(color: AppColors.textLight, fontWeight: FontWeight.bold, fontSize: 15)),
             const SizedBox(height: 10),
 
             ...itensOrcamento.asMap().entries.map((entry) {
@@ -523,7 +523,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                       items: [
                         const DropdownMenuItem<String>(
                           value: null,
-                          child: Text('Digitação Manual', style: TextStyle(color: AppColors.textSub)),
+                          child: Text('DigitaÃ§Ã£o Manual', style: TextStyle(color: AppColors.textSub)),
                         ),
                         ...listaProdutos.map((prod) {
                           final nomeProd = prod['name'] ?? prod['nome'] ?? '';
@@ -554,7 +554,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                     TextField(
                       controller: descControllers[idx],
                       style: const TextStyle(color: AppColors.textLight),
-                      decoration: const InputDecoration(labelText: 'Descrição do Item', labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12), border: OutlineInputBorder()),
+                      decoration: const InputDecoration(labelText: 'DescriÃ§Ã£o do Item', labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12), border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 10),
                     Row(
@@ -575,7 +575,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                             controller: precoControllers[idx],
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             style: const TextStyle(color: AppColors.textLight),
-                            decoration: const InputDecoration(labelText: 'Preço Unit. (R\$)', labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12), border: OutlineInputBorder()),
+                            decoration: const InputDecoration(labelText: 'PreÃ§o Unit. (R\$)', labelStyle: TextStyle(color: AppColors.textSub, fontSize: 12), border: OutlineInputBorder()),
                           ),
                         ),
                       ],
@@ -621,7 +621,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
               dropdownColor: AppColors.surfaceDark,
               style: const TextStyle(color: AppColors.textLight),
               decoration: const InputDecoration(labelText: 'Forma de Pagamento', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-              items: ['Pix', 'Cartão de Crédito', 'Dinheiro', 'Boleto', 'A combinar'].map((fp) {
+              items: ['Pix', 'CartÃ£o de CrÃ©dito', 'Dinheiro', 'Boleto', 'A combinar'].map((fp) {
                 return DropdownMenuItem(value: fp, child: Text(fp));
               }).toList(),
               onChanged: (v) {
@@ -633,8 +633,8 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
               value: statusSelecionado,
               dropdownColor: AppColors.surfaceDark,
               style: const TextStyle(color: AppColors.textLight),
-              decoration: const InputDecoration(labelText: 'Status do Orçamento', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
-              items: ['Pendente', 'Aprovado', 'Concluído', 'Cancelado'].map((status) {
+              decoration: const InputDecoration(labelText: 'Status do OrÃ§amento', labelStyle: TextStyle(color: AppColors.textSub), border: OutlineInputBorder()),
+              items: ['Pendente', 'Aprovado', 'ConcluÃ­do', 'Cancelado'].map((status) {
                 return DropdownMenuItem(value: status, child: Text(status));
               }).toList(),
               onChanged: (novoValor) {
@@ -659,7 +659,7 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                 }
 
                 if (cliente.isNotEmpty && itensFinais.isNotEmpty && valorTotal > 0) {
-                  // SALVAMENTO AUTOMÁTICO DO CLIENTE NA BASE DE DADOS
+                  // SALVAMENTO AUTOMÃTICO DO CLIENTE NA BASE DE DADOS
                   await ClientService.adicionarOuAtualizarCliente(cliente);
 
                   final dataAtual = DateTime.now().toString().substring(0, 10);
@@ -689,11 +689,11 @@ class _FormularioOrcamentoScreenState extends State<FormularioOrcamentoScreen> {
                   if (!context.mounted) return;
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Orçamento salvo e cliente cadastrado com sucesso!'), backgroundColor: AppColors.surfaceDark),
+                    const SnackBar(content: Text('OrÃ§amento salvo e cliente cadastrado com sucesso!'), backgroundColor: AppColors.surfaceDark),
                   );
                 }
               },
-              child: const Text('Salvar Orçamento', style: TextStyle(fontSize: 16)),
+              child: const Text('Salvar OrÃ§amento', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),
